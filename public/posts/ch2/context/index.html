@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="2.4 上下文 上下文（Context）是 Go 语言中非常有特色的一个特性， 在 Go 1.7 版本中正式引入新标准库 context。其主要的作用是在 goroutine 中进行上下文的传递，而在传递信息中又包含了 goroutine 的运行控制、上下文信息传递等功能。
+为加强大家对 Go 语言的 context 的设计，本文将对标准库 context 进行深入剖析，看看他里面到底暗含了何物，又为何能够做那么多事。
+整体的描述结构是：“了解 context 特性，熟悉 context 流程，剖析 context 原理” 三个板块进行。
+2.4.1 什么是 context Go 语言的独有的功能之一 Context，最常听说开发者说的一句话就是 “函数的第一个形参真的要传 ctx 吗？”，第二句话可能是 “有没有什么办法不传，就能达到传入的效果？”，听起来非常魔幻。
+在 Go 语言中 context 作为一个 “一等公民” 的标准库，许多的开源库都一定会对他进行支持，因为标准库 context 的定位是上下文控制。会在跨 goroutine 中进行传播：
+本质上 Go 语言是基于 context 来实现和搭建了各类 goroutine 控制的，并且与 select-case 联合，就可以实现进行上下文的截止时间、信号控制、信息传递等跨 goroutine 的操作，是 Go 语言协程的重中之重。
+2.4.2 context 基本特性 演示代码：
+func main() { parentCtx := context."><meta property="og:title" content="上下文" />
+<meta property="og:description" content="2.4 上下文 上下文（Context）是 Go 语言中非常有特色的一个特性， 在 Go 1.7 版本中正式引入新标准库 context。其主要的作用是在 goroutine 中进行上下文的传递，而在传递信息中又包含了 goroutine 的运行控制、上下文信息传递等功能。
+为加强大家对 Go 语言的 context 的设计，本文将对标准库 context 进行深入剖析，看看他里面到底暗含了何物，又为何能够做那么多事。
+整体的描述结构是：“了解 context 特性，熟悉 context 流程，剖析 context 原理” 三个板块进行。
+2.4.1 什么是 context Go 语言的独有的功能之一 Context，最常听说开发者说的一句话就是 “函数的第一个形参真的要传 ctx 吗？”，第二句话可能是 “有没有什么办法不传，就能达到传入的效果？”，听起来非常魔幻。
+在 Go 语言中 context 作为一个 “一等公民” 的标准库，许多的开源库都一定会对他进行支持，因为标准库 context 的定位是上下文控制。会在跨 goroutine 中进行传播：
+本质上 Go 语言是基于 context 来实现和搭建了各类 goroutine 控制的，并且与 select-case 联合，就可以实现进行上下文的截止时间、信号控制、信息传递等跨 goroutine 的操作，是 Go 语言协程的重中之重。
+2.4.2 context 基本特性 演示代码：
+func main() { parentCtx := context." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://example.org/posts/ch2/context/" />
+
+<title>上下文 | Go 语言进阶之旅</title>
+<link rel="icon" href="/favicon.png" type="image/x-icon">
+<link rel="stylesheet" href="/book.min.6df681b0bb21155cba49f6078e3559216772d8e03e780d240c73ea21817ed5e5.css" integrity="sha256-bfaBsLshFVy6SfYHjjVZIWdy2OA&#43;eA0kDHPqIYF&#43;1eU=">
+<script defer src="/en.search.min.468cad2d3255934eb8d6d36965d20bac6a7844a1f0179b8dec4eeb8c0918d949.js" integrity="sha256-RoytLTJVk0641tNpZdILrGp4RKHwF5uN7E7rjAkY2Uk="></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/"><span>Go 语言进阶之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+  <ul>
+<li>第一章：开天辟地</li>
+<li>第二章：数据结构</li>
+<li>第三章：常用关键字</li>
+<li>第四章：高级应用
+<ul>
+<li><a href="/posts/ch2/reflect/">2.1 反射</a></li>
+<li><a href="/posts/ch2/channel/">2.2 通道</a></li>
+<li><a href="/posts/ch2/interface/">2.3 接口</a></li>
+<li><a href="/posts/ch2/context/"class=active>2.4 上下文</a></li>
+<li><a href="/posts/ch2/sync/">2.5 同步原语</a></li>
+<li><a href="/posts/ch2/timer/">2.6 定时器</a></li>
+</ul>
+</li>
+<li>第五章：标准库</li>
+<li>第六章：调度器</li>
+<li>第七章：内存管理</li>
+<li>第八章：垃圾回收</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>上下文</strong>
+
+  <label for="toc-control">
+    <img src="/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#241-什么是-context">2.4.1 什么是 context</a></li>
+    <li><a href="#242-context-基本特性">2.4.2 context 基本特性</a></li>
+    <li><a href="#243-context-本质">2.4.3 context 本质</a>
+      <ul>
+        <li><a href="#2431-接口">2.4.3.1 接口</a></li>
+        <li><a href="#2432-基础结构">2.4.3.2 基础结构</a></li>
+      </ul>
+    </li>
+    <li><a href="#244-context-取消事件">2.4.4 context 取消事件</a></li>
+    <li><a href="#245-总结">2.4.5 总结</a></li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="24-上下文">2.4 上下文</h1>
+<p>上下文（Context）是 Go 语言中非常有特色的一个特性， 在 Go 1.7 版本中正式引入新标准库 context。其主要的作用是在 goroutine 中进行上下文的传递，而在传递信息中又包含了 goroutine 的运行控制、上下文信息传递等功能。</p>
+<p><img src="https://image.eddycjy.com/3260bcae3e3b46d6d1e540c4e1ab790e.jpg" alt="image" /></p>
+<p>为加强大家对 Go 语言的 context 的设计，本文将对标准库 context 进行深入剖析，看看他里面到底暗含了何物，又为何能够做那么多事。</p>
+<p>整体的描述结构是：“了解 context 特性，熟悉 context 流程，剖析 context 原理” 三个板块进行。</p>
+<h2 id="241-什么是-context">2.4.1 什么是 context</h2>
+<p>Go 语言的独有的功能之一 Context，最常听说开发者说的一句话就是 “函数的第一个形参真的要传 ctx 吗？”，第二句话可能是 “有没有什么办法不传，就能达到传入的效果？”，听起来非常魔幻。</p>
+<p>在 Go 语言中 context 作为一个 “一等公民” 的标准库，许多的开源库都一定会对他进行支持，因为标准库 context 的定位是上下文控制。会在跨 goroutine 中进行传播：</p>
+<p><img src="https://image.eddycjy.com/b41e1fabcb54821e319c78d074049d9e.jpg" alt="image" /></p>
+<p>本质上 Go 语言是基于 context 来实现和搭建了各类 goroutine 控制的，并且与 <code>select-case</code> 联合，就可以实现进行上下文的截止时间、信号控制、信息传递等跨 goroutine 的操作，是 Go 语言协程的重中之重。</p>
+<h2 id="242-context-基本特性">2.4.2 context 基本特性</h2>
+<p>演示代码：</p>
+<pre><code>func main() {
+	parentCtx := context.Background()
+	ctx, cancel := context.WithTimeout(parentCtx, 1*time.Millisecond)
+	defer cancel()
+
+	select {
+	case &lt;-time.After(1 * time.Second):
+		fmt.Println(&quot;overslept&quot;)
+	case &lt;-ctx.Done():
+		fmt.Println(ctx.Err())
+	}
+}
+</code></pre><p>输出结果：</p>
+<pre><code>context deadline exceeded
+</code></pre><p>我们通过调用标准库 <code>context.WithTimeout</code> 方法针对 <code>parentCtx</code> 变量设置了超时时间，并在随后调用 <code>select-case</code> 进行 <code>context.Done</code> 方法的监听，最后由于达到截止时间。因此逻辑上 <code>select</code> 走到了 <code>context.Err</code> 的 <code>case</code> 分支，最终输出 <code>context deadline exceeded</code>。</p>
+<p>除了上述所描述的方法外，标准库 <code>context</code> 还支持下述方法：</p>
+<pre><code>func WithCancel(parent Context) (ctx Context, cancel CancelFunc)
+func WithDeadline(parent Context, d time.Time) (Context, CancelFunc)
+func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)
+type Context
+    func Background() Context
+    func TODO() Context
+    func WithValue(parent Context, key, val interface{}) Context
+</code></pre><ul>
+<li>WithCancel：基于父级 context，创建一个可以取消的新 context。</li>
+<li>WithDeadline：基于父级 context，创建一个具有截止时间（Deadline）的新 context。</li>
+<li>WithTimeout：基于父级 context，创建一个具有超时时间（Timeout）的新 context。</li>
+<li>Background：创建一个空的 context，一般常用于作为根的父级 context。</li>
+<li>TODO：创建一个空的 context，一般用于未确定时的声明使用。</li>
+<li>WithValue：基于某个 context 创建并存储对应的上下文信息。</li>
+</ul>
+<h2 id="243-context-本质">2.4.3 context 本质</h2>
+<p>我们在基本特性中介绍了不少 context 的方法，其基本大同小异。看上去似乎不难，接下来我们看看其底层的基本原理和设计。</p>
+<p>context 相关函数的标准返回如下：</p>
+<pre><code>func WithXXXX(parent Context, xxx xxx) (Context, CancelFunc)
+</code></pre><p>其返回值分别是 <code>Context</code> 和 <code>CancelFunc</code>，接下来我们将进行分析这两者的作用。</p>
+<h3 id="2431-接口">2.4.3.1 接口</h3>
+<ol>
+<li>Context 接口：</li>
+</ol>
+<pre><code>type Context interface {
+    Deadline() (deadline time.Time, ok bool)
+    Done() &lt;-chan struct{}
+    Err() error
+    Value(key interface{}) interface{}
+}
+</code></pre><ul>
+<li>Deadline：获取当前 context 的截止时间。</li>
+<li>Done：获取一个只读的 channel，类型为结构体。可用于识别当前 channel 是否已经被关闭，其原因可能是到期，也可能是被取消了。</li>
+<li>Err：获取当前 context 被关闭的原因。</li>
+<li>Value：获取当前 context 对应所存储的上下文信息。</li>
+</ul>
+<ol start="2">
+<li>Canceler 接口：</li>
+</ol>
+<pre><code>type canceler interface {
+	cancel(removeFromParent bool, err error)
+	Done() &lt;-chan struct{}
+}
+</code></pre><ul>
+<li>cancel：调用当前 context 的取消方法。</li>
+<li>Done：与前面一致，可用于识别当前 channel 是否已经被关闭。</li>
+</ul>
+<h3 id="2432-基础结构">2.4.3.2 基础结构</h3>
+<p>在标准库 context 的设计上，一共提供了四类 context 类型来实现上述接口。分别是 <code>emptyCtx</code>、<code>cancelCtx</code>、<code>timerCtx</code> 以及 <code>valueCtx</code>。</p>
+<p><img src="https://image.eddycjy.com/0a1374c5188afa4a8fd0802825523678.jpg" alt="image" /></p>
+<h4 id="24321-emptyctx">2.4.3.2.1 emptyCtx</h4>
+<p>在日常使用中，常常使用到的 <code>context.Background</code> 方法，又或是 <code>context.TODO</code> 方法。</p>
+<p>源码如下：</p>
+<pre><code>var (
+	background = new(emptyCtx)
+	todo       = new(emptyCtx)
+)
+
+func Background() Context {
+	return background
+}
+
+func TODO() Context {
+	return todo
+}
+</code></pre><p>其本质上都是基于 <code>emptyCtx</code> 类型的基本封装。而 <code>emptyCtx</code> 类型本质上是实现了 Context 接口：</p>
+<pre><code>type emptyCtx int
+
+func (*emptyCtx) Deadline() (deadline time.Time, ok bool) {
+	return
+}
+
+func (*emptyCtx) Done() &lt;-chan struct{} {
+	return nil
+}
+
+func (*emptyCtx) Err() error {
+	return nil
+}
+
+func (*emptyCtx) Value(key interface{}) interface{} {
+	return nil
+}
+</code></pre><p>实际上 <code>emptyCtx</code> 类型的 context 的实现非常简单，因为他是空 context 的定义，因此没有 deadline，更没有 timeout，可以认为就是一个基础空白 context 模板。</p>
+<h4 id="24322-cancelctx">2.4.3.2.2 cancelCtx</h4>
+<p>在调用 <code>context.WithCancel</code> 方法时，我们会涉及到 <code>cancelCtx</code> 类型，其主要特性是取消事件。源码如下：</p>
+<pre><code>func WithCancel(parent Context) (ctx Context, cancel CancelFunc) {
+	c := newCancelCtx(parent)
+	propagateCancel(parent, &amp;c)
+	return &amp;c, func() { c.cancel(true, Canceled) }
+}
+
+func newCancelCtx(parent Context) cancelCtx {
+	return cancelCtx{Context: parent}
+}
+</code></pre><p>其中的 <code>newCancelCtx</code> 方法将会生成出一个可以取消的新 context，如果该 context 执行取消，与其相关联的子 context 以及对应的 goroutine 也会收到取消信息。</p>
+<p>首先 main goroutine 创建并传递了一个新的 context 给 goroutine b，此时 goroutine b 的 context 是 main goroutine context 的子集：</p>
+<p><img src="https://image.eddycjy.com/d4946119d99b242af20d1a9162aa3629.jpg" alt="image" /></p>
+<p>传递过程中，goroutine b 再将其 context 一个个传递给了 goroutine c、d、e。最后在运行时 goroutine b 调用了 <code>cancel</code> 方法。使得该 context 以及其对应的子集均接受到取消信号，对应的 goroutine 也进行了响应。</p>
+<p>接下来我们针对 <code>cancelCtx</code> 类型来进一步看看：</p>
+<pre><code>type cancelCtx struct {
+	Context
+
+	mu       sync.Mutex            // protects following fields
+	done     chan struct{}         // created lazily, closed by first cancel call
+	children map[canceler]struct{} // set to nil by the first cancel call
+	err      error                 // set to non-nil by the first cancel call
+}
+</code></pre><p>该结构体所包含的属性也比较简单，主要是 <code>children</code> 字段，其包含了该 context 对应的所有子集 context，便于在后续发生取消事件的时候进行逐一通知和关联。</p>
+<p>而其他的属性主要用于并发控制（互斥锁）、取消信息和错误的写入：</p>
+<pre><code>func (c *cancelCtx) Value(key interface{}) interface{} {
+	if key == &amp;cancelCtxKey {
+		return c
+	}
+	return c.Context.Value(key)
+}
+
+func (c *cancelCtx) Done() &lt;-chan struct{} {
+	c.mu.Lock()
+	if c.done == nil {
+		c.done = make(chan struct{})
+	}
+	d := c.done
+	c.mu.Unlock()
+	return d
+}
+
+func (c *cancelCtx) Err() error {
+	c.mu.Lock()
+	err := c.err
+	c.mu.Unlock()
+	return err
+}
+</code></pre><p>在上述代码中可以留意到，<code>done</code> 属性（只读 channel）是在真正调用到 <code>Done</code> 方法时才会去创建。需要配合 <code>select-case</code> 来使用。</p>
+<h4 id="24323-timerctx">2.4.3.2.3 timerCtx</h4>
+<p>在调用 <code>context.WithTimeout</code> 方法时，我们会涉及到 <code>timerCtx</code> 类型，其主要特性是 Timeout 和 Deadline 事件，源码如下：</p>
+<pre><code>func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc) {
+	return WithDeadline(parent, time.Now().Add(timeout))
+}
+
+func WithDeadline(parent Context, d time.Time) (Context, CancelFunc) {
+	...
+	c := &amp;timerCtx{
+		cancelCtx: newCancelCtx(parent),
+		deadline:  d,
+	}
+}
+</code></pre><p>你可以发现 <code>timerCtx</code> 类型是基于 <code>cancelCtx</code> 类型的。我们再进一步看看 <code>timerCtx</code> 结构体：</p>
+<pre><code>type timerCtx struct {
+	cancelCtx
+	timer *time.Timer // Under cancelCtx.mu.
+
+	deadline time.Time
+}
+</code></pre><p>其实 timerCtx 类型也就是 <code>cancelCtx</code> 类型，加上 <code>time.Timer</code> 和对应的 Deadline，也就是包含了时间属性的控制。</p>
+<p>我们进一步看看其配套的 cancel 方法，思考一下其是如何进行取消动作的：</p>
+<pre><code>func (c *timerCtx) Deadline() (deadline time.Time, ok bool) {
+	return c.deadline, true
+}
+
+func (c *timerCtx) cancel(removeFromParent bool, err error) {
+	c.cancelCtx.cancel(false, err)
+	if removeFromParent {
+		removeChild(c.cancelCtx.Context, c)
+	}
+	c.mu.Lock()
+	if c.timer != nil {
+		c.timer.Stop()
+		c.timer = nil
+	}
+	c.mu.Unlock()
+}
+</code></pre><p>先会调用 <code>cancelCtx</code> 类型的取消事件。若存在父级节点，则移除当前 context 子节点，最后停止定时器并进行定时器重置。而 Deadline 或 Timeout 的行为则由 <code>timerCtx</code> 的 <code>WithDeadline</code> 方法实现：</p>
+<pre><code>func WithDeadline(parent Context, d time.Time) (Context, CancelFunc) {
+	if cur, ok := parent.Deadline(); ok &amp;&amp; cur.Before(d) {
+		// The current deadline is already sooner than the new one.
+		return WithCancel(parent)
+	}
+	...
+}
+</code></pre><p>该方法会先进行前置判断，若父级节点的 Deadline 时间早于当前所指定的 Deadline 时间，将会直接生成一个 cancelCtx 的 context。</p>
+<pre><code>func WithDeadline(parent Context, d time.Time) (Context, CancelFunc) {
+	...
+	c := &amp;timerCtx{
+		cancelCtx: newCancelCtx(parent),
+		deadline:  d,
+	}
+	propagateCancel(parent, c)
+	dur := time.Until(d)
+	if dur &lt;= 0 {
+		c.cancel(true, DeadlineExceeded) // deadline has already passed
+		return c, func() { c.cancel(false, Canceled) }
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.err == nil {
+		c.timer = time.AfterFunc(dur, func() {
+			c.cancel(true, DeadlineExceeded)
+		})
+	}
+	return c, func() { c.cancel(true, Canceled) }
+}
+</code></pre><p>接下来将会正式生成成为一个 <code>timeCtx</code> 类型，并将其加入到父级 context 是 children 属性中。最后进行当前时间与 Deadline 时间的计算，并通过调用 <code>time.AfterFunc</code> 在到期后自动调用 <code>cancel</code> 方法发起取消事件，自然也就会触发父子级的事件传播。</p>
+<h4 id="24324-valuectx">2.4.3.2.4 valueCtx</h4>
+<p>在调用 <code>context.WithValue</code> 方法时，我们会涉及到 <code>valueCtx</code> 类型，其主要特性是涉及上下文信息传递，源码如下：</p>
+<pre><code>func WithValue(parent Context, key, val interface{}) Context {
+	...
+	if !reflectlite.TypeOf(key).Comparable() {
+		panic(&quot;key is not comparable&quot;)
+	}
+	return &amp;valueCtx{parent, key, val}
+}
+</code></pre><p>你会发现 <code>valueCtx</code> 结构体也非常的简单，核心就是键值对：</p>
+<pre><code>type valueCtx struct {
+	Context
+	key, val interface{}
+}
+</code></pre><p>其在配套方法上也不会太复杂，基本就是要求可比较，接着就是存储匹配：</p>
+<pre><code>func (c *valueCtx) Value(key interface{}) interface{} {
+	if c.key == key {
+		return c.val
+	}
+	return c.Context.Value(key)
+}
+</code></pre><p>这时候你可能又有疑问了，那多个父子级 context 是如何实现跨 context 的上下文信息获取的？</p>
+<p>这秘密其实在上面的 <code>valueCtx</code> 和 <code>Value</code> 方法中有所表现：</p>
+<p><img src="https://image.eddycjy.com/4e0d636194410febd6cabd896bdb7dae.jpg" alt="image" /></p>
+<p>本质上 <code>valueCtx</code> 类型是一个单向链表，会在调用 <code>Value</code> 方法时先查询自己的节点是否有该值。若无，则会通过自身存储的上层父级节点的信息一层层向上寻找对应的值，直到找到为止。</p>
+<p>而在实际的工程应用中，你会发现各大框架，例如：gin、grpc 等。他都是有自己再实现一套上下文信息的传输的二次封装，本意也是为了更好的管理和观察上下文信息。</p>
+<h2 id="244-context-取消事件">2.4.4 context 取消事件</h2>
+<p>在我们针对 context 的各类延伸类型和源码进行了分析后。我们进一步提出一个疑问点，context 是如何实现跨 goroutine 的取消事件并传播开来的，是如何实现的？</p>
+<p>这个问题的答案就在于 <code>WithCancel</code> 和 <code>WithDeadline</code> 都会涉及到 <code>propagateCancel</code> 方法，其作用是构建父子级的上下文的关联关系，若出现取消事件时，就会进行处理：</p>
+<pre><code>func propagateCancel(parent Context, child canceler) {
+	done := parent.Done()
+	if done == nil {
+		return
+	}
+
+	select {
+	case &lt;-done:
+		child.cancel(false, parent.Err())
+		return
+	default:
+	}
+	...
+}
+</code></pre><ul>
+<li>当父级上下文（parent）的 <code>Done</code> 结果为 <code>nil</code> 时，将会直接返回，因为其不会具备取消事件的基本条件，可能该 context 是 <code>Background</code>、<code>TODO</code> 等方法产生的空白 context。</li>
+<li>当父级上下文（parent）的 <code>Done</code> 结果不为 <code>nil</code> 时，则发现父级上下文已经被取消，作为其子级，该 context 将会触发取消事件并返回父级上下文的取消原因。</li>
+</ul>
+<pre><code>func propagateCancel(parent Context, child canceler) {
+	...
+	if p, ok := parentCancelCtx(parent); ok {
+		p.mu.Lock()
+		if p.err != nil {
+			child.cancel(false, p.err)
+		} else {
+			if p.children == nil {
+				p.children = make(map[canceler]struct{})
+			}
+			p.children[child] = struct{}{}
+		}
+		p.mu.Unlock()
+	} else {
+		atomic.AddInt32(&amp;goroutines, +1)
+		go func() {
+			select {
+			case &lt;-parent.Done():
+				child.cancel(false, parent.Err())
+			case &lt;-child.Done():
+			}
+		}()
+	}
+}
+</code></pre><p>经过前面一个代码片段的判断，已得知父级 context 未触发取消事件，当前父级和子级 context 均正常（未取消）。</p>
+<p>将会执行以下流程：</p>
+<ul>
+<li>调用 <code>parentCancelCtx</code> 方法找到具备取消功能的父级 context。并将当前 context，也就是 <code>child</code> 加入到 父级 context 的 children 列表中，等待后续父级 context 的取消事件通知和响应。</li>
+<li>调用 <code>parentCancelCtx</code> 方法没有找到，将会启动一个新的 goroutine 去监听父子 context 的取消事件通知。</li>
+</ul>
+<p>通过对 context 的取消事件和整体源码分析，可得知 <code>cancelCtx</code> 类型的上下文包含了其下属的所有子节点信息：</p>
+<p><img src="https://image.eddycjy.com/0b6c32936da622a36295cdb898392c38.jpg" alt="image" /></p>
+<p>也就是其在 <code>children</code> 属性的 <code>map[canceler]struct{}</code> 存储结构上就已经支持了子级关系的查找，也就自然可以进行取消事件传播了。</p>
+<p>而具体的取消事件的实际行为，则是在前面提到的 <code>propagateCancel</code> 方法中，会在执行例如 <code>cacenl</code> 方法时，会对父子级上下文分别进行状态判断，若满足则进行取消事件，并传播给子级同步取消。</p>
+<h2 id="245-总结">2.4.5 总结</h2>
+<p>作为 Go 语言的核心功能之一，其实标准库 context 非常的短小精悍，使用的都是基本的数据结构和理念。既满足了跨 goroutine 的调控控制，像是并发、超时控制等。</p>
+<p>同时也满足了上下文的信息传递。在工程应用中，例如像是链路ID、公共参数、鉴权校验等，都会使用到 context 作为媒介。</p>
+<p>目前官方对于 context 的建议是作为方法的首参数传入，虽有些麻烦，但也有人选择将其作为结构体中的一个属性传入。但这也会带来一些心智负担，需要识别是否重新 new 一个。</p>
+<p>也有人提出希望 <a href="https://faiface.github.io/post/context-should-go-away-go2/">Go2 取消掉 context</a>，换成另外一种方法，但总体而言目前未见到正式的提案，这是我们都需要再思考的。</p>
+</article>
+ 
+      <div class="book-footer justify-between"></div>
+<p>本图书由<a href= "https://github.com/eddycjy"> 煎鱼 </a>©2020 版权所有，所有文章采用<a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh">知识署名-非商业性使用-禁止演绎 4.0 国际</a>进行许可。</p>
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+<script src="https://utteranc.es/client.js"
+    repo="eddycjy/go-advanced-book-comments"
+    issue-term="title"
+    theme="github-light"
+    crossorigin="anonymous"
+    async>
+</script>
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#241-什么是-context">2.4.1 什么是 context</a></li>
+    <li><a href="#242-context-基本特性">2.4.2 context 基本特性</a></li>
+    <li><a href="#243-context-本质">2.4.3 context 本质</a>
+      <ul>
+        <li><a href="#2431-接口">2.4.3.1 接口</a></li>
+        <li><a href="#2432-基础结构">2.4.3.2 基础结构</a></li>
+      </ul>
+    </li>
+    <li><a href="#244-context-取消事件">2.4.4 context 取消事件</a></li>
+    <li><a href="#245-总结">2.4.5 总结</a></li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

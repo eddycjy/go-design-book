@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="2.6 计时器 在实际的应用工程中，我们常常会需要多久后，或定时去做某个事情。甚至在分析标准库 context 的父子级传播时，都能见到等待多久后自动触发取消事件的踪影。
+而在 Go 语言中，能够完成这类运行的功能诉求就是标准库 time，在具体的功能范畴上我们称其为 “计时器“，是一个非常具有价值的一个模块。在这篇文章中我们将对其做进一步的分析和研讨。
+2.6.1 什么是 timer 可以控制时间，确保应用程序中的某段代码在某个时刻运行。在 Go 语言中可以单次执行，也可以循环执行。最常见的方式就是引用标准库 time 去做一些事情。普通开发者最常见的代码就是：
+time.Now().Unix() 上述代码可用于获取当前时间的 Unix 时间戳，而在内部的具体实现上提供了 Time、Timer 以及 Ticker 的各类配套方法。
+2.6.2 timer 基本特性 2.6.2.1 Timer 演示代码：
+func main() { timer := time.NewTimer(2 * time.Second) &lt;-timer.C fmt.Println(&quot;我的脑子真的进煎鱼了！&quot;) } 输出结果：
+// 等待两秒... 我的脑子真的进煎鱼了！ 我们可以通过 time.NewTimer 方法定时在 2 秒进行程序的执行。而其还有个变种的用法，在做 channel 的源码剖析时有发现
+func main() { v := make(chan struct{}) timer := time.AfterFunc(2*time.Second, func() { fmt.Println(&quot;我想在这个点吃煎鱼！&quot;) v &lt;- struct{}{} }) defer timer."><meta property="og:title" content="计时器" />
+<meta property="og:description" content="2.6 计时器 在实际的应用工程中，我们常常会需要多久后，或定时去做某个事情。甚至在分析标准库 context 的父子级传播时，都能见到等待多久后自动触发取消事件的踪影。
+而在 Go 语言中，能够完成这类运行的功能诉求就是标准库 time，在具体的功能范畴上我们称其为 “计时器“，是一个非常具有价值的一个模块。在这篇文章中我们将对其做进一步的分析和研讨。
+2.6.1 什么是 timer 可以控制时间，确保应用程序中的某段代码在某个时刻运行。在 Go 语言中可以单次执行，也可以循环执行。最常见的方式就是引用标准库 time 去做一些事情。普通开发者最常见的代码就是：
+time.Now().Unix() 上述代码可用于获取当前时间的 Unix 时间戳，而在内部的具体实现上提供了 Time、Timer 以及 Ticker 的各类配套方法。
+2.6.2 timer 基本特性 2.6.2.1 Timer 演示代码：
+func main() { timer := time.NewTimer(2 * time.Second) &lt;-timer.C fmt.Println(&quot;我的脑子真的进煎鱼了！&quot;) } 输出结果：
+// 等待两秒... 我的脑子真的进煎鱼了！ 我们可以通过 time.NewTimer 方法定时在 2 秒进行程序的执行。而其还有个变种的用法，在做 channel 的源码剖析时有发现
+func main() { v := make(chan struct{}) timer := time.AfterFunc(2*time.Second, func() { fmt.Println(&quot;我想在这个点吃煎鱼！&quot;) v &lt;- struct{}{} }) defer timer." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://example.org/posts/ch2/timer/" />
+
+<title>计时器 | Go 语言进阶之旅</title>
+<link rel="icon" href="/favicon.png" type="image/x-icon">
+<link rel="stylesheet" href="/book.min.6df681b0bb21155cba49f6078e3559216772d8e03e780d240c73ea21817ed5e5.css" integrity="sha256-bfaBsLshFVy6SfYHjjVZIWdy2OA&#43;eA0kDHPqIYF&#43;1eU=">
+<script defer src="/en.search.min.468cad2d3255934eb8d6d36965d20bac6a7844a1f0179b8dec4eeb8c0918d949.js" integrity="sha256-RoytLTJVk0641tNpZdILrGp4RKHwF5uN7E7rjAkY2Uk="></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/"><span>Go 语言进阶之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+  <ul>
+<li>第一章：开天辟地</li>
+<li>第二章：数据结构</li>
+<li>第三章：常用关键字</li>
+<li>第四章：高级应用
+<ul>
+<li><a href="/posts/ch2/reflect/">2.1 反射</a></li>
+<li><a href="/posts/ch2/channel/">2.2 通道</a></li>
+<li><a href="/posts/ch2/interface/">2.3 接口</a></li>
+<li><a href="/posts/ch2/context/">2.4 上下文</a></li>
+<li><a href="/posts/ch2/sync/">2.5 同步原语</a></li>
+<li><a href="/posts/ch2/timer/"class=active>2.6 定时器</a></li>
+</ul>
+</li>
+<li>第五章：标准库</li>
+<li>第六章：调度器</li>
+<li>第七章：内存管理</li>
+<li>第八章：垃圾回收</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>计时器</strong>
+
+  <label for="toc-control">
+    <img src="/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#261-什么是-timer">2.6.1 什么是 timer</a></li>
+    <li><a href="#262-timer-基本特性">2.6.2 timer 基本特性</a>
+      <ul>
+        <li><a href="#2621-timer">2.6.2.1 Timer</a></li>
+        <li><a href="#2622-ticker">2.6.2.2 Ticker</a></li>
+      </ul>
+    </li>
+    <li><a href="#263-最小堆四叉堆">2.6.3 最小堆：四叉堆</a></li>
+    <li><a href="#264-数据结构">2.6.4 数据结构</a></li>
+    <li><a href="#265-实现原理">2.6.5 实现原理</a>
+      <ul>
+        <li><a href="#2651-创建计时器">2.6.5.1 创建计时器</a></li>
+        <li><a href="#2652-启动计时器">2.6.5.2 启动计时器</a></li>
+        <li><a href="#2653-停止计时器">2.6.5.3 停止计时器</a></li>
+        <li><a href="#2654-修改重置计时器">2.6.5.4 修改/重置计时器</a></li>
+        <li><a href="#2655-触发计时器">2.6.5.5 触发计时器</a></li>
+        <li><a href="#2656-运行计时器">2.6.5.6 运行计时器</a></li>
+      </ul>
+    </li>
+    <li><a href="#267-总结">2.6.7 总结</a></li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="26-计时器">2.6 计时器</h1>
+<p>在实际的应用工程中，我们常常会需要多久后，或定时去做某个事情。甚至在分析标准库 context 的父子级传播时，都能见到等待多久后自动触发取消事件的踪影。</p>
+<p>而在 Go 语言中，能够完成这类运行的功能诉求就是标准库 time，在具体的功能范畴上我们称其为 “计时器“，是一个非常具有价值的一个模块。在这篇文章中我们将对其做进一步的分析和研讨。</p>
+<h2 id="261-什么是-timer">2.6.1 什么是 timer</h2>
+<p>可以控制时间，确保应用程序中的某段代码在某个时刻运行。在 Go 语言中可以单次执行，也可以循环执行。最常见的方式就是引用标准库 <code>time</code> 去做一些事情。普通开发者最常见的代码就是：</p>
+<pre><code>time.Now().Unix()
+</code></pre><p>上述代码可用于获取当前时间的 <code>Unix</code> 时间戳，而在内部的具体实现上提供了 <code>Time</code>、<code>Timer</code> 以及 <code>Ticker</code> 的各类配套方法。</p>
+<h2 id="262-timer-基本特性">2.6.2 timer 基本特性</h2>
+<h3 id="2621-timer">2.6.2.1 Timer</h3>
+<p>演示代码：</p>
+<pre><code>func main() {
+	timer := time.NewTimer(2 * time.Second)
+	&lt;-timer.C
+	fmt.Println(&quot;我的脑子真的进煎鱼了！&quot;)
+}
+</code></pre><p>输出结果：</p>
+<pre><code>// 等待两秒...
+我的脑子真的进煎鱼了！
+</code></pre><p>我们可以通过 <code>time.NewTimer</code> 方法定时在 2 秒进行程序的执行。而其还有个变种的用法，在做 channel 的源码剖析时有发现</p>
+<pre><code>func main() {
+	v := make(chan struct{})
+	timer := time.AfterFunc(2*time.Second, func() {
+		fmt.Println(&quot;我想在这个点吃煎鱼！&quot;)
+		v &lt;- struct{}{}
+	})
+	defer timer.Stop()
+	&lt;-v
+}
+</code></pre><p>在等待 2 秒后，会立即调用 <code>time.AfterFunc</code> 所对应的匿名方法。在时间上我们也可以指定对应的具体时间，达到异步的定时执行等诉求。</p>
+<h3 id="2622-ticker">2.6.2.2 Ticker</h3>
+<p>演示代码：</p>
+<pre><code>func main() {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	done := make(chan bool)
+	go func() {
+		time.Sleep(10 * time.Second)
+		done &lt;- true
+	}()
+	for {
+		select {
+		case &lt;-done:
+			fmt.Println(&quot;Done!&quot;)
+			return
+		case t := &lt;-ticker.C:
+			fmt.Println(&quot;炸煎鱼: &quot;, t.Unix())
+		}
+	}
+}
+</code></pre><p>输出结果：</p>
+<pre><code>// 每隔一秒输出一次
+炸煎鱼:  1611666168
+炸煎鱼:  1611666169
+炸煎鱼:  1611666170
+炸煎鱼:  1611666171
+...
+</code></pre><p>我们通过 <code>time.NewTicker</code> 方法设定每 1 秒执行一次方法，因此在 <code>for-select</code> 中，我们会每 1 秒就可以自动 “炸一条煎鱼”，真是快乐极了。</p>
+<p>而由于我们在 goroutine 中通过 <code>sleep</code> 方法的设定了 <code>done</code> 变量的输入，因此在 10 秒后就会结束炸煎鱼的循环输出，最终退出。</p>
+<h2 id="263-最小堆四叉堆">2.6.3 最小堆：四叉堆</h2>
+<p>在 Go 语言中，内置计时器的数据结构都会涉及到最小四叉堆，如下图所示：</p>
+<p><img src="https://image.eddycjy.com/ba8d03cdbb03448e2b7395b876f8bb76.jpg" alt="image" /></p>
+<p>整体来讲就是父节点一定比其子节点小，子节点之间没有任何关系和大小的要求。</p>
+<h2 id="264-数据结构">2.6.4 数据结构</h2>
+<p>在 Go 语言中每个计时器运行时的基本单元是 <code>runtime.timer</code>：</p>
+<pre><code>type timer struct {
+	pp puintptr
+
+	when   int64
+	period int64
+	f      func(interface{}, uintptr)
+	arg    interface{}
+	seq    uintptr
+	nextwhen int64
+	status uint32
+}
+</code></pre><ul>
+<li>pp：计时器所在的处理器 P 的指针地址。</li>
+<li>when：计时器被唤醒的时间。</li>
+<li>period：计时器再次被唤醒的时间（when+period）。</li>
+<li>f：回调函数，每次在计时器被唤醒时都会调用。</li>
+<li>arg：回调函数的参数，每次在计时器被唤醒时会将该参数项传入回调函数 <code>f</code> 中。</li>
+<li>seq：回调函数的参数，该参数仅在 <code>netpoll</code> 的应用场景下使用。</li>
+<li>nextwhen：当计时器状态为 timerModifiedXX 时，将会使用 <code>nextwhen</code> 的值设置到 <code>where</code> 字段上。</li>
+<li>status：计时器的当前状态值，计时器本身包含大量的枚举标识，这块会在后面介绍。</li>
+</ul>
+<p>但这类基本单元都不会是对用户端暴露的结构体，在对外上我们直观见的最多的是 <code>time.NewTimer</code> 所创建的 <code>Timer</code> 结构体：</p>
+<pre><code>type Timer struct {
+	C &lt;-chan Time
+	r runtimeTimer
+}
+</code></pre><ul>
+<li>C：用于接收 <code>Timer</code> 所触发的事件，当计时器的消息事件（例如：到期）发生时，该 channel 会接收到通知。</li>
+<li>r：与 <code>runtime.timer</code> 作用类似，内在属性保持一致。</li>
+</ul>
+<p>同时在计时器运行模式上自 Go1.14 起发生了变更，<code>runtime.timer</code> 改为将每个 <code>timer</code> 均存储在对应的处理器 P 中</p>
+<pre><code>type p struct {
+	...
+	timersLock mutex
+	timers []*timer
+	...
+}
+</code></pre><p>在处理器 P 上，<code>timers</code> 字段就是一个以最小四叉堆形式存储的媒介。在时序上，需要立刻执行，或说需要越早执行的，就越排在堆的越上面：</p>
+<p><img src="https://image.eddycjy.com/3386d444bdce4973cd3d8e687ccbaa84.jpg" alt="image" /></p>
+<h2 id="265-实现原理">2.6.5 实现原理</h2>
+<p>在了解了计时器的基本特性和数据结构后，我们进一步展开，一层层剖析其原理，看看其是何物。在 Go 语言中，计时器在运行时涉及十种状态处理，分别涉及增、删、改以及重置等操作。</p>
+<p>计时器所包含的状态如下：</p>
+<table>
+<thead>
+<tr>
+<th>状态名</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>timerNoStatus</td>
+<td>计时器尚未设置状态</td>
+</tr>
+<tr>
+<td>timerWaiting</td>
+<td>等待计时器启动</td>
+</tr>
+<tr>
+<td>timerRunning</td>
+<td>运行计时器的回调方法</td>
+</tr>
+<tr>
+<td>timerDeleted</td>
+<td>计时器已经被删除，但仍然在某些 P 的堆中</td>
+</tr>
+<tr>
+<td>timerRemoving</td>
+<td>计时器即将被删除</td>
+</tr>
+<tr>
+<td>timerRemoved</td>
+<td>计时器已经停止，且不在任何 P 的堆中</td>
+</tr>
+<tr>
+<td>timerModifying</td>
+<td>计时器正在被修改</td>
+</tr>
+<tr>
+<td>timerModifiedEarlier</td>
+<td>计时器已被修改为更早的时间</td>
+</tr>
+<tr>
+<td>timerModifiedLater</td>
+<td>计时器已被修改为更晚的时间</td>
+</tr>
+<tr>
+<td>timerMoving</td>
+<td>计时器已经被修改，正在被移动</td>
+</tr>
+</tbody>
+</table>
+<p>这时候可能就会有小伙伴疑惑，各种启动、删除、停止、启动是指代的是什么意思？为什么会涉及到 P 的管理？</p>
+<h3 id="2651-创建计时器">2.6.5.1 创建计时器</h3>
+<p>接下来我们依然是从 <code>NewTimer</code> 和 <code>NewTicker</code> 方法开始入手：</p>
+<pre><code>func NewTimer(d Duration) *Timer {
+	c := make(chan Time, 1)
+	t := &amp;Timer{
+		C: c,
+		r: runtimeTimer{
+			when: when(d),
+			f:    sendTime,
+			arg:  c,
+		},
+	}
+	startTimer(&amp;t.r)
+	return t
+}
+</code></pre><p>在该方法中，其主要包含如下动作：</p>
+<ul>
+<li>创建 <code>Timer</code> 对象，主要是 <code>C</code> 和 <code>r</code> 属性，含义与前面所表述的一致。</li>
+<li>调用 <code>startTimer</code> 方法，启动计时器。</li>
+</ul>
+<p><code>NewTicker</code> 方法与 <code>NewTimer</code> 类似，主要是增加了 <code>period</code> 字段：</p>
+<pre><code>func NewTicker(d Duration) *Ticker {
+	c := make(chan Time, 1)
+	t := &amp;Ticker{
+		C: c,
+		r: runtimeTimer{
+			when:   when(d),
+			period: int64(d),
+			f:      sendTime,
+			arg:    c,
+		},
+	}
+	startTimer(&amp;t.r)
+	return t
+}
+</code></pre><p>在 <code>Ticker</code> 结构体中，<code>period</code> 字段用于表示计时器再次被唤醒的时间，可以便于做轮询触发。</p>
+<h3 id="2652-启动计时器">2.6.5.2 启动计时器</h3>
+<p>在前面调用 <code>NewTimer</code>、<code>NewTicker</code> 方法时，会将新创建的新计时器 <code>timer</code> 加入到创建 timer 的 P 的最小堆中：</p>
+<pre><code>func addtimer(t *timer) {
+	if t.when &lt; 0 {
+		t.when = maxWhen
+	}
+	if t.status != timerNoStatus {
+		throw(&quot;addtimer called with initialized timer&quot;)
+	}
+	t.status = timerWaiting
+
+	when := t.when
+
+	pp := getg().m.p.ptr()
+	lock(&amp;pp.timersLock)
+	cleantimers(pp)
+	doaddtimer(pp, t)
+	unlock(&amp;pp.timersLock)
+
+	wakeNetPoller(when)
+}
+</code></pre><ul>
+<li>检查是否满足基本条件：新增计时器的边界处理，<code>timerNoStatus</code> 状态判断排除。</li>
+<li>调用 <code>cleantimers</code> 方法：清理处理器 P 中的计时器队列，可以加快创建和删除计时器的程序的速度。</li>
+<li>调用 <code>doaddtimer</code> 方法：将当前所新创建的 <code>timer</code> 新增到当前处理器 P 的堆中。</li>
+<li>调用 <code>wakeNetPoller</code> 方法：唤醒网络轮询器中休眠的线程，检查计时器被唤醒的时间（when）是否在当前轮询预期运行的时间（pollerPollUntil）内，若是唤醒。</li>
+</ul>
+<h3 id="2653-停止计时器">2.6.5.3 停止计时器</h3>
+<p>在计时器的运转中，一般会调用 <code>timer.Stop()</code> 方法来停止/终止/删除计时器。虽然说法多样。但大家的真实目的是一样的，就是让这个 <code>timer</code> 从轮询器中消失，也就是从处理器 P 的堆中移除 <code>timer</code>：</p>
+<pre><code>func deltimer(t *timer) bool {
+	for {
+		switch s := atomic.Load(&amp;t.status); s {
+		case timerWaiting, timerModifiedLater:
+			// timerWaiting/timerModifiedLater -&gt; timerDeleted
+			...
+		case timerModifiedEarlier:
+		    // timerModifiedEarlier -&gt; timerModifying -&gt; timerDeleted
+			...
+		case timerDeleted, timerRemoving, timerRemoved:
+		    // timerDeleted/timerRemoving/timerRemoved 
+			return false
+		case timerRunning, timerMoving:
+		    // timerRunning/timerMoving
+			osyield()
+		case timerNoStatus:
+			return false
+		case timerModifying:
+			osyield()
+		default:
+			badTimer()
+		}
+	}
+}
+</code></pre><p>但移除也不是直接一个 <code>delete</code> 就完事的，其在真正的删除方法 <code>deltimer</code> 中遵循了基本的规则处理：</p>
+<ol>
+<li>timerWaiting/timerModifiedLater -&gt; timerDeleted。</li>
+<li>timerModifiedEarlier -&gt; timerModifying -&gt; timerDeleted。</li>
+<li>timerDeleted/timerRemoving/timerRemoved -&gt; 无需变更，已经满足条件。</li>
+<li>timerRunning/timerMoving/timerModifying -&gt; 正在执行、移动中，无法停止，等待下一次状态检查再处理。</li>
+<li>timerNoStatus -&gt; 无法停止，不满足条件。</li>
+</ol>
+<p>上述五个基本流转逻辑就覆盖了 <a href="https://github.com/golang/go/blob/d2d155d1ae8c704a37f42fd3ebb1f3846f78e4d4/src/runtime/time.go#L301">runtimer.deltimer</a> 方法了，若有进一步需求的可通过传送门详细阅读。</p>
+<h3 id="2654-修改重置计时器">2.6.5.4 修改/重置计时器</h3>
+<p>在应用程序的调度中，有时候因为逻辑产生了变更，我们需要重置计时器。这时候一般会调用 <code>timer.Reset()</code> 方法来重新设置 <code>Duration</code> 值。</p>
+<p>其表面对应的是 <code>resetTimer</code> 方法，但实际与修改计时器的 <code>modtimer</code> 方法是共用的：</p>
+<pre><code>func resettimer(t *timer, when int64) bool {
+	return modtimer(t, when, t.period, t.f, t.arg, t.seq)
+}
+</code></pre><p>因此在这节中我们可以将重置和修改计时器放在一起分析。修改计时器，本质上是需要变更现有计时器，而在 Go 语言的计时器中是需要遵循基本规则，因此 <code>modtimer</code> 遵循下述规则处理：</p>
+<ol>
+<li>timerWaiting    -&gt; timerModifying -&gt; timerModifiedXX</li>
+<li>timerModifiedXX -&gt; timerModifying -&gt; timerModifiedYY</li>
+<li>timerNoStatus   -&gt; timerModifying -&gt; timerWaiting</li>
+<li>timerRemoved    -&gt; timerModifying -&gt; timerWaiting</li>
+<li>timerDeleted    -&gt; timerModifying -&gt; timerModifiedXX</li>
+<li>timerRunning    -&gt; 等待状态改变，才可以进行下一步</li>
+<li>timerMoving     -&gt; 等待状态改变，才可以进行下一步</li>
+<li>timerRemoving   -&gt; 等待状态改变，才可以进行下一步</li>
+<li>timerModifying  -&gt; 等待状态改变，才可以进行下一步</li>
+</ol>
+<pre><code>func modtimer(t *timer, when, period int64, f func(interface{}, uintptr), arg interface{}, seq uintptr) bool {
+	...
+	if wasRemoved {
+		t.when = when
+		pp := getg().m.p.ptr()
+		lock(&amp;pp.timersLock)
+		doaddtimer(pp, t)
+		unlock(&amp;pp.timersLock)
+		
+		releasem(mp)
+		wakeNetPoller(when)
+	} else {
+		t.nextwhen = when
+		newStatus := uint32(timerModifiedLater)
+		if when &lt; t.when {
+			newStatus = timerModifiedEarlier
+		}
+		...
+		releasem(mp)
+
+		if newStatus == timerModifiedEarlier {
+			wakeNetPoller(when)
+		}
+	}
+
+	return pending
+}
+</code></pre><p>在完成了计时器的状态处理后，会分为两种情况处理：</p>
+<ul>
+<li>待修改的计时器已经被删除：由于既有的计时器已经没有了，因此会调用 <code>doaddtimer</code> 方法创建一个新的计时器，并将原本的 <code>timer</code> 属性赋值过去，再调用 <code>wakeNetPoller</code> 方法在预定时间唤醒网络轮询。</li>
+<li>正常逻辑处理：如果修改后的计时器的触发时间小于原本的触发时间，则修改该计时器的状态为 <code>timerModifiedEarlier</code>，并且调用 <code>wakeNetPoller</code> 方法在预定时间唤醒网络轮询。</li>
+</ul>
+<h3 id="2655-触发计时器">2.6.5.5 触发计时器</h3>
+<p>在前面有提到 Go1.14 后，Go Timer 都已经归属到各个处理器 P 中去了，因此计时器的触发分为了两个部分：</p>
+<ul>
+<li>通过调度器在调度时进行计时器的触发。</li>
+<li>通过系统监控检查并触发计时器（到期未执行）。</li>
+</ul>
+<h4 id="26551-调度器触发">2.6.5.5.1 调度器触发</h4>
+<p>调度器的触发一共分两种情况，一种是在调度循环的时候调用 <code>checkTimers</code> 方法进行计时器的触发：</p>
+<pre><code>func schedule() {
+	_g_ := getg()
+
+top:
+	pp := _g_.m.p.ptr()
+	pp.preempt = false
+
+	// 处理调度时的计时器触发
+	checkTimers(pp, 0)
+	...
+
+	execute(gp, inheritTime)
+}
+</code></pre><p>另外一种是当前处理器 P 没有可执行的 Timer，且没有可执行的 G。那么按照调度模型，就会去窃取其他计时器和 G：</p>
+<pre><code>func findrunnable() (gp *g, inheritTime bool) {
+	_g_ := getg()
+
+top:
+	_p_ := _g_.m.p.ptr()
+	...
+	now, pollUntil, _ := checkTimers(_p_, 0)
+	...
+}
+</code></pre><p>调度系统在计时器处不深究，我们进一步剖析具体触发计时器的 <code>checkTimers</code> 方法：</p>
+<pre><code>func checkTimers(pp *p, now int64) (rnow, pollUntil int64, ran bool) {
+	if atomic.Load(&amp;pp.adjustTimers) == 0 {
+		next := int64(atomic.Load64(&amp;pp.timer0When))
+		if next == 0 {
+			return now, 0, false
+		}
+		if now == 0 {
+			now = nanotime()
+		}
+		if now &lt; next {
+			if pp != getg().m.p.ptr() || int(atomic.Load(&amp;pp.deletedTimers)) &lt;= int(atomic.Load(&amp;pp.numTimers)/4) {
+				return now, next, false
+			}
+		}
+	}
+
+	lock(&amp;pp.timersLock)
+
+	adjusttimers(pp)
+    ...
+}
+</code></pre><ul>
+<li>起始先通过 <code>pp.adjustTimers</code> 检查当前处理器 P 中是否有需要处理的计时器。
+<ul>
+<li>若无需执行的计时器，则直接返回。</li>
+<li>若有，则判断下一个计时器待删除的计时器和处理器 P 上的计时器数量，若前者小于后者 1/4 则直接返回。</li>
+</ul>
+</li>
+<li>确定需要处理计时器后，通过调用 <code>adjusttimers</code> 方法重新根据时间将 <code>timers</code> 切片中 <code>timer</code> 的先后顺序重新排列（相当于 resort）。</li>
+</ul>
+<pre><code>func checkTimers(pp *p, now int64) (rnow, pollUntil int64, ran bool) {
+	...
+	rnow = now
+	if len(pp.timers) &gt; 0 {
+		if rnow == 0 {
+			rnow = nanotime()
+		}
+		for len(pp.timers) &gt; 0 {
+			if tw := runtimer(pp, rnow); tw != 0 {
+				if tw &gt; 0 {
+					pollUntil = tw
+				}
+				break
+			}
+			ran = true
+		}
+	}
+	...
+}
+</code></pre><p>在前面调整了 <code>timers</code> 切片中的最小堆的排序后，将会调用 <code>runtimer</code> 方法去真正运行所需要执行的 <code>timer</code>，完成触计时器的发。</p>
+<pre><code>func checkTimers(pp *p, now int64) (rnow, pollUntil int64, ran bool) {
+	...
+	if pp == getg().m.p.ptr() &amp;&amp; int(atomic.Load(&amp;pp.deletedTimers)) &gt; len(pp.timers)/4 {
+		clearDeletedTimers(pp)
+	}
+
+	unlock(&amp;pp.timersLock)
+
+	return rnow, pollUntil, ran
+}
+</code></pre><p>在最后扫尾阶段，如果当前 G 的处理器与调用 <code>checkTimers</code> 方法所传入的处理器一致，并且处理器中 <code>timerDeleted</code> 状态的计时器数量是处理器 P 堆中的计时器的 1/4 以上，则调用 <code>clearDeletedTimers</code> 方法对已为删除状态的的计时器进行清理。</p>
+<h4 id="26552-系统监控触发">2.6.5.5.2 系统监控触发</h4>
+<p>即使是通过每次调度器调度和窃取的时候触发，但毕竟是具有一定的随机和不确定性。</p>
+<p>因此系统监控触发依然是一个兜底保障，在 Go 语言中 <code>runtime.sysmon</code> 方法承担了这一个责任，存在触发计时器的逻辑：</p>
+<pre><code>func sysmon() {
+	...
+	for {
+		...
+		next, _ := timeSleepUntil()
+
+		if debug.schedtrace &lt;= 0 &amp;&amp; (sched.gcwaiting != 0 || atomic.Load(&amp;sched.npidle) == uint32(gomaxprocs)) {
+			lock(&amp;sched.lock)
+			if atomic.Load(&amp;sched.gcwaiting) != 0 || atomic.Load(&amp;sched.npidle) == uint32(gomaxprocs) {
+				if next &gt; now {
+					...
+					next, _ = timeSleepUntil()
+					lock(&amp;sched.lock)
+					atomic.Store(&amp;sched.sysmonwait, 0)
+					noteclear(&amp;sched.sysmonnote)
+				}
+				idle = 0
+				delay = 20
+			}
+			unlock(&amp;sched.lock)
+		}
+		...
+	}
+}
+</code></pre><p>在每次进行系统监控时，都会在流程上调用 <code>timeSleepUntil</code> 方法去获取下一个计时器应触发的时间，以及保存该计时器已打开的计时器堆的 P。</p>
+<p>在获取完毕后会马上检查当前是否存在 GC，若是正在 STW 则获取调度互斥锁。若发现下一个计时器的触发时间已经过去，则重新调用 <code>timeSleepUntil</code> 获取下一个计时器的时间和相应 P 的地址。</p>
+<pre><code>func sysmon() {
+	...
+	for {
+		...
+		lock(&amp;sched.sysmonlock)
+		{
+			now1 := nanotime()
+			if now1-now &gt; 50*1000 /* 50µs */ {
+				next, _ = timeSleepUntil()
+			}
+			now = now1
+		}
+		...
+	}
+}
+</code></pre><p>检查 <code>sched.sysmonlock</code> 所花费的时间是否超过 50µs。若是，则有可能前面所获取的下一个计时器触发时间已过期，因此重新调用 <code>timeSleepUntil</code> 方法再次获取。</p>
+<pre><code>func sysmon() {
+	...
+	for {
+		...
+		lastpoll := int64(atomic.Load64(&amp;sched.lastpoll))
+		if netpollinited() &amp;&amp; lastpoll != 0 &amp;&amp; lastpoll+10*1000*1000 &lt; now {
+			atomic.Cas64(&amp;sched.lastpoll, uint64(lastpoll), uint64(now))
+			list := netpoll(0) // non-blocking - returns list of goroutines
+			if !list.empty() {
+				incidlelocked(-1)
+				injectglist(&amp;list)
+				incidlelocked(1)
+			}
+		}
+		if next &lt; now {
+			startm(nil, false)
+		}
+	}
+}
+</code></pre><p>如果发现超过 10ms 的时间没有进行 <code>netpoll</code> 网络轮询，则主动调用 <code>netpoll</code> 方法触发轮询。</p>
+<p>同时如果存在不可抢占的处理器 P，则调用 <code>startm</code> 方法来运行那些应该运行，但没有在运行的计时器。</p>
+<h3 id="2656-运行计时器">2.6.5.6 运行计时器</h3>
+<p><code>runtimer</code> 方法主要承担计时器的具体运行，同时也会针对计时器的不同状态（含删除、修改、等待等）都进行了对应的处理，也相当于是个大的集中处理中枢了。例如在 <code>timerDeleted</code> 状态下的计时器将会进行删除。</p>
+<p>其遵循下述规则处理</p>
+<ol>
+<li>timerNoStatus    -&gt; 恐慌：计时器未初始化</li>
+<li>timerWaiting     -&gt; timerWaiting</li>
+<li>timerWaiting     -&gt; timerRunning -&gt; timerNoStatus</li>
+<li>timerWaiting     -&gt; timerRunning -&gt; timerWaiting</li>
+<li>timerModifying   -&gt; 等待状态改变，才可以进行下一步</li>
+<li>timerModifiedXX  -&gt; timerMoving -&gt; timerWaiting</li>
+<li>timerDeleted     -&gt; timerRemoving -&gt; timerRemoved</li>
+<li>timerRunning     -&gt; 恐慌：并发调用</li>
+<li>timerRemoved     -&gt; 恐慌：计时器堆不一致</li>
+<li>timerRemoving   -&gt; 恐慌：计时器堆不一致</li>
+<li>timerMoving     -&gt; 恐慌：计时器堆不一致</li>
+</ol>
+<pre><code>func runtimer(pp *p, now int64) int64 {
+	for {
+		t := pp.timers[0]
+		switch s := atomic.Load(&amp;t.status); s {
+		case timerWaiting:
+			if t.when &gt; now {
+				return t.when
+			}
+
+			runOneTimer(pp, t, now)
+			return 0
+
+		case timerDeleted:
+		    ...
+		case timerModifiedEarlier, timerModifiedLater:
+		    ...
+		case timerModifying:
+			osyield()
+		case timerNoStatus, timerRemoved:
+			badTimer()
+		case timerRunning, timerRemoving, timerMoving:
+			badTimer()
+		default:
+			badTimer()
+		}
+	}
+}
+</code></pre><p>由于是运行，我们集中看 <code>timerWaiting</code> 状态下的处理，其首先会对触发时间（when）进行判定，若大于当前时间则直接返回（因为所需触发的时间未到）。否则将会调用 <code>runOneTimer</code> 方法去执行本次触发：</p>
+<pre><code>func runOneTimer(pp *p, t *timer, now int64) {
+	f := t.f
+	arg := t.arg
+	seq := t.seq
+
+	if t.period &gt; 0 {
+		delta := t.when - now
+		t.when += t.period * (1 + -delta/t.period)
+		siftdownTimer(pp.timers, 0)
+		if !atomic.Cas(&amp;t.status, timerRunning, timerWaiting) {
+			badTimer()
+		}
+		updateTimer0When(pp)
+	} else {
+		dodeltimer0(pp)
+	}
+
+	unlock(&amp;pp.timersLock)
+	f(arg, seq)
+	lock(&amp;pp.timersLock)
+}
+</code></pre><ul>
+<li>如果 <code>period</code> 大于 0，说明当前是 ticker，需要再次触发，因此还需要调整计时器的状态。
+<ul>
+<li>重新计算下一次的触发时间，并且更新其在最小堆的位置。</li>
+<li>调用 <code>atomic.Cas</code> 方法该计时器的状态从 <code>timerRunning</code> 原子修改为 <code>timerWaiting</code> 状态。</li>
+<li>调用 <code>updateTimer0When</code> 方法设置处理器 P 的 <code>timer0When</code> 字段。</li>
+</ul>
+</li>
+<li>如果 <code>period</code> 等于 0，说明当前是 timer，只需要单次触发就可以了。</li>
+</ul>
+<p>在完成计时器的运行属性更新后，上互斥锁，调用计时器的回调方法 <code>f</code>，完成本次完整的触发流程。</p>
+<h2 id="267-总结">2.6.7 总结</h2>
+<p>Go 语言的 Timer 其实已经改过了好几版，在 Go1.14 的正式大改版后。目前来看已经初步的到了一个新的阶段。其设计的模式主要围绕三块：</p>
+<ul>
+<li>在各个处理器 P 中，Timer 以最小四叉堆的存储方式在 timers 中。</li>
+<li>在调度器的每轮调度中都会对计时器进行触发和检查。</li>
+<li>在系统监听上 <code>netpoll</code> 会定时进行计时器的触发和检查。</li>
+<li>在计时器的处理中，十个状态的流转和对应处理非常重要。</li>
+</ul>
+</article>
+ 
+      <div class="book-footer justify-between"></div>
+<p>本图书由<a href= "https://github.com/eddycjy"> 煎鱼 </a>©2020 版权所有，所有文章采用<a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh">知识署名-非商业性使用-禁止演绎 4.0 国际</a>进行许可。</p>
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+<script src="https://utteranc.es/client.js"
+    repo="eddycjy/go-advanced-book-comments"
+    issue-term="title"
+    theme="github-light"
+    crossorigin="anonymous"
+    async>
+</script>
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#261-什么是-timer">2.6.1 什么是 timer</a></li>
+    <li><a href="#262-timer-基本特性">2.6.2 timer 基本特性</a>
+      <ul>
+        <li><a href="#2621-timer">2.6.2.1 Timer</a></li>
+        <li><a href="#2622-ticker">2.6.2.2 Ticker</a></li>
+      </ul>
+    </li>
+    <li><a href="#263-最小堆四叉堆">2.6.3 最小堆：四叉堆</a></li>
+    <li><a href="#264-数据结构">2.6.4 数据结构</a></li>
+    <li><a href="#265-实现原理">2.6.5 实现原理</a>
+      <ul>
+        <li><a href="#2651-创建计时器">2.6.5.1 创建计时器</a></li>
+        <li><a href="#2652-启动计时器">2.6.5.2 启动计时器</a></li>
+        <li><a href="#2653-停止计时器">2.6.5.3 停止计时器</a></li>
+        <li><a href="#2654-修改重置计时器">2.6.5.4 修改/重置计时器</a></li>
+        <li><a href="#2655-触发计时器">2.6.5.5 触发计时器</a></li>
+        <li><a href="#2656-运行计时器">2.6.5.6 运行计时器</a></li>
+      </ul>
+    </li>
+    <li><a href="#267-总结">2.6.7 总结</a></li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

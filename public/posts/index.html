@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content=""><meta property="og:title" content="Posts" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="http://example.org/posts/" />
+
+<title>Posts | Go 语言进阶之旅</title>
+<link rel="icon" href="/favicon.png" type="image/x-icon">
+<link rel="stylesheet" href="/book.min.6df681b0bb21155cba49f6078e3559216772d8e03e780d240c73ea21817ed5e5.css" integrity="sha256-bfaBsLshFVy6SfYHjjVZIWdy2OA&#43;eA0kDHPqIYF&#43;1eU=">
+<script defer src="/en.search.min.468cad2d3255934eb8d6d36965d20bac6a7844a1f0179b8dec4eeb8c0918d949.js" integrity="sha256-RoytLTJVk0641tNpZdILrGp4RKHwF5uN7E7rjAkY2Uk="></script>
+<link rel="alternate" type="application/rss+xml" href="http://example.org/posts/index.xml" title="Go 语言进阶之旅" />
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/"><span>Go 语言进阶之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+  <ul>
+<li>第一章：开天辟地</li>
+<li>第二章：数据结构</li>
+<li>第三章：常用关键字</li>
+<li>第四章：高级应用
+<ul>
+<li><a href="/posts/ch2/reflect/">2.1 反射</a></li>
+<li><a href="/posts/ch2/channel/">2.2 通道</a></li>
+<li><a href="/posts/ch2/interface/">2.3 接口</a></li>
+<li><a href="/posts/ch2/context/">2.4 上下文</a></li>
+<li><a href="/posts/ch2/sync/">2.5 同步原语</a></li>
+<li><a href="/posts/ch2/timer/">2.6 定时器</a></li>
+</ul>
+</li>
+<li>第五章：标准库</li>
+<li>第六章：调度器</li>
+<li>第七章：内存管理</li>
+<li>第八章：垃圾回收</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>Posts</strong>
+
+  <label for="toc-control">
+    <img src="/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav>
+  <ul>
+  
+    
+    <li class="book-section-flat">
+      <strong>Categories</strong>
+      <ul>
+      
+      </ul>
+    </li>
+    
+  
+    
+    <li class="book-section-flat">
+      <strong>Tags</strong>
+      <ul>
+      
+      </ul>
+    </li>
+    
+  
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+      
+  
+  <article class="markdown book-post">
+    <h2>
+      <a href="/posts/ch2/context/">上下文</a>
+    </h2>
+    
+
+
+  
+
+  
+
+
+    <p>2.4 上下文 上下文（Context）是 Go 语言中非常有特色的一个特性， 在 Go 1.7 版本中正式引入新标准库 context。其主要的作用是在 goroutine 中进行上下文的传递，而在传递信息中又包含了 goroutine 的运行控制、上下文信息传递等功能。
+为加强大家对 Go 语言的 context 的设计，本文将对标准库 context 进行深入剖析，看看他里面到底暗含了何物，又为何能够做那么多事。
+整体的描述结构是：“了解 context 特性，熟悉 context 流程，剖析 context 原理” 三个板块进行。
+2.4.1 什么是 context Go 语言的独有的功能之一 Context，最常听说开发者说的一句话就是 “函数的第一个形参真的要传 ctx 吗？”，第二句话可能是 “有没有什么办法不传，就能达到传入的效果？”，听起来非常魔幻。
+在 Go 语言中 context 作为一个 “一等公民” 的标准库，许多的开源库都一定会对他进行支持，因为标准库 context 的定位是上下文控制。会在跨 goroutine 中进行传播：
+本质上 Go 语言是基于 context 来实现和搭建了各类 goroutine 控制的，并且与 select-case 联合，就可以实现进行上下文的截止时间、信号控制、信息传递等跨 goroutine 的操作，是 Go 语言协程的重中之重。
+2.4.2 context 基本特性 演示代码：
+func main() { parentCtx := context.
+        <a href="/posts/ch2/context/">...</a>
+      
+    </p>
+  </article>
+  
+  <article class="markdown book-post">
+    <h2>
+      <a href="/posts/ch2/reflect/">反射</a>
+    </h2>
+    
+
+
+  
+
+  
+
+
+    <p>2.1 反射 在所有的语言中，反射这一功能基本属于必不可少的模块。虽说 “反射” 这个词让人根深蒂固，但更多的还是 WHY。反射到底是什么，反射又是基于什么法则实现的？
+本章节以 Go 语言为例，了解反射到底为何物，其底层又是如何实现的。
+反射是什么 在计算机学中，反射是指计算机程序在运行时（runtime）可以访问、检测和修改它本身状态或行为的一种能力。用比喻来说，反射就是程序在运行的时候能够 “观察” 并且修改自己的行为（来自维基百科）。
+简单来讲就是，应用程序能够在运行时观察到变量的值，并且能够修改他。
+一个例子 最常见的 reflect 标准库例子，如下：
+import ( &quot;fmt&quot; &quot;reflect&quot; ) func main() { rv := []interface{}{&quot;hi&quot;, 42, func() {}} for _, v := range rv { switch v := reflect.ValueOf(v); v.Kind() { case reflect.String: fmt.Println(v.String()) case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64: fmt.Println(v.Int()) default: fmt.Printf(&quot;unhandled kind %s&quot;, v.Kind()) } } } 输出结果：
+hi 42 unhandled kind func 在程序中主要是声明了 rv 变量，变量类型为 interface{}，其包含 3 个不同类型的值，分别是字符串、数字、闭包。一般 interface{} 的使用常见于不知道入参者具体的基本类型是什么，那么就会用 interface{} 类型来做一个伪 “泛型”。
+        <a href="/posts/ch2/reflect/">...</a>
+      
+    </p>
+  </article>
+  
+  <article class="markdown book-post">
+    <h2>
+      <a href="/posts/ch2/sync/">同步原语</a>
+    </h2>
+    
+
+
+  
+
+  
+
+
+    <p>2.5 同步原语 sync.mutex
+    </p>
+  </article>
+  
+  <article class="markdown book-post">
+    <h2>
+      <a href="/posts/ch2/interface/">接口</a>
+    </h2>
+    
+
+
+  
+
+  
+
+
+    <p>2.3 接口 自古流传着一个传言&hellip;在 Go 语言面试的时候必有人会问接口（interface）的实现原理。这又是为什么？为何对接口如此执着？
+实际上，Go 语言的接口设计在整体扮演着非常重要的角色，没有他，很多程序估计都跑的不愉快。在 Go 语言的语义上，只要某个类型实现了所定义的一组方法集，则就认为其就是同一种类型，是一个东西。大家常常称其为鸭子类型（Duck typing），因为其与鸭子类型类型的定义相对吻合。
+在维基百科中，鸭子类型的谚语定义为 ”If it looks like a duck, swims like a duck, and quacks like a duck, then it probably is a duck.“，翻译过来就是 ”如果它看起来像鸭子，像鸭子一样游泳，像鸭子一样嘎嘎叫，那他就可以认为是鸭子“。
+回归到 Go 语言，在接口之下，接口又蕴含了怎么样的底层结构，其设计原理和思考又是什么呢？我们不能只看表面，接下来在这一章节中都会进行一一分析和道来。看看其深层到底是何 “物”。
+2.3.1 什么是 interface Go 语言中的接口声明：
+type Human interface { Say(s string) error } 关键字主体为 type xxx interface，紧接着可以在方括号中编写方法集，用于声明和定义该接口所包含的方法集。
+更进一步的代码演示：
+type Human interface { Say(s string) error } type TestA string func (t TestA) Say(s string) error { fmt.
+        <a href="/posts/ch2/interface/">...</a>
+      
+    </p>
+  </article>
+  
+  <article class="markdown book-post">
+    <h2>
+      <a href="/posts/ch2/startup/">第二章：运行时</a>
+    </h2>
+    
+
+
+  
+
+  
+
+
+    <p>第二章：运行时 
+    </p>
+  </article>
+  
+  <article class="markdown book-post">
+    <h2>
+      <a href="/posts/ch2/timer/">计时器</a>
+    </h2>
+    
+
+
+  
+
+  
+
+
+    <p>2.6 计时器 在实际的应用工程中，我们常常会需要多久后，或定时去做某个事情。甚至在分析标准库 context 的父子级传播时，都能见到等待多久后自动触发取消事件的踪影。
+而在 Go 语言中，能够完成这类运行的功能诉求就是标准库 time，在具体的功能范畴上我们称其为 “计时器“，是一个非常具有价值的一个模块。在这篇文章中我们将对其做进一步的分析和研讨。
+2.6.1 什么是 timer 可以控制时间，确保应用程序中的某段代码在某个时刻运行。在 Go 语言中可以单次执行，也可以循环执行。最常见的方式就是引用标准库 time 去做一些事情。普通开发者最常见的代码就是：
+time.Now().Unix() 上述代码可用于获取当前时间的 Unix 时间戳，而在内部的具体实现上提供了 Time、Timer 以及 Ticker 的各类配套方法。
+2.6.2 timer 基本特性 2.6.2.1 Timer 演示代码：
+func main() { timer := time.NewTimer(2 * time.Second) &lt;-timer.C fmt.Println(&quot;我的脑子真的进煎鱼了！&quot;) } 输出结果：
+// 等待两秒... 我的脑子真的进煎鱼了！ 我们可以通过 time.NewTimer 方法定时在 2 秒进行程序的执行。而其还有个变种的用法，在做 channel 的源码剖析时有发现
+func main() { v := make(chan struct{}) timer := time.AfterFunc(2*time.Second, func() { fmt.Println(&quot;我想在这个点吃煎鱼！&quot;) v &lt;- struct{}{} }) defer timer.
+        <a href="/posts/ch2/timer/">...</a>
+      
+    </p>
+  </article>
+  
+  <article class="markdown book-post">
+    <h2>
+      <a href="/posts/ch2/channel/">通道</a>
+    </h2>
+    
+
+
+  
+
+  
+
+
+    <p>2.1 通道 Go 语言中的一大利器那就是能够非常方便的使用 go 关键字来进行各种并发，而并发后又必然会涉及通信。
+Channel 自然而然就成为了 Go 语言开发者中必须要明白明了的一个 “东西” 了，更别提实际工程应用和日常面试了，属于必知必会。
+什么是 channel 在 Go 语言中，channel 可以称其为通道，也可以叫管道。channel 主要常见于与 goroutine+select 搭配使用，再结合语录的描述。可以知道 channel 就是用于 goroutine 的数据通信：
+演示代码如下：
+func main() { ch := make(chan string) go func() { ch &lt;- &quot;煎鱼&quot; }() msg := &lt;-ch fmt.Println(msg) } 在 goroutine1 中写入 “煎鱼” 到变量 ch 中，goroutine2 监听变量 ch，并阻塞等待读取到值 “煎鱼” 最终返回，结束流程。
+在此 channel 承载着一个衔接器的桥梁：
+这也是 channel 的经典思想了，不要通过共享内存来通信，而是通过通信来实现内存共享（Do not communicate by sharing memory; instead, share memory by communicating）。
+        <a href="/posts/ch2/channel/">...</a>
+      
+    </p>
+  </article>
+  
+
+  
+
+
+ 
+      <div class="book-footer justify-between"></div>
+<p>本图书由<a href= "https://github.com/eddycjy"> 煎鱼 </a>©2020 版权所有，所有文章采用<a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh">知识署名-非商业性使用-禁止演绎 4.0 国际</a>进行许可。</p>
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+<script src="https://utteranc.es/client.js"
+    repo="eddycjy/go-advanced-book-comments"
+    issue-term="title"
+    theme="github-light"
+    crossorigin="anonymous"
+    async>
+</script>
+ 
+        
+      </footer>
+
+      
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav>
+  <ul>
+  
+    
+    <li class="book-section-flat">
+      <strong>Categories</strong>
+      <ul>
+      
+      </ul>
+    </li>
+    
+  
+    
+    <li class="book-section-flat">
+      <strong>Tags</strong>
+      <ul>
+      
+      </ul>
+    </li>
+    
+  
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

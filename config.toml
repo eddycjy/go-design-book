@@ -1,0 +1,9 @@
+baseURL = "http://example.org/"
+languageCode = "zh-cn"
+title = "Go 语言设计哲学"
+theme = "book"
+
+[params]
+BookToC = true
+BookSection = 'posts'
+BookMenuBundle = '/menu'

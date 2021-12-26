@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="2.3 接口 自古流传着一个传言&hellip;在 Go 语言面试的时候必有人会问接口（interface）的实现原理。这又是为什么？为何对接口如此执着？
+实际上，Go 语言的接口设计在整体扮演着非常重要的角色，没有他，很多程序估计都跑的不愉快。在 Go 语言的语义上，只要某个类型实现了所定义的一组方法集，则就认为其就是同一种类型，是一个东西。大家常常称其为鸭子类型（Duck typing），因为其与鸭子类型类型的定义相对吻合。
+在维基百科中，鸭子类型的谚语定义为 ”If it looks like a duck, swims like a duck, and quacks like a duck, then it probably is a duck.“，翻译过来就是 ”如果它看起来像鸭子，像鸭子一样游泳，像鸭子一样嘎嘎叫，那他就可以认为是鸭子“。
+回归到 Go 语言，在接口之下，接口又蕴含了怎么样的底层结构，其设计原理和思考又是什么呢？我们不能只看表面，接下来在这一章节中都会进行一一分析和道来。看看其深层到底是何 “物”。
+2.3.1 什么是 interface Go 语言中的接口声明：
+type Human interface { Say(s string) error } 关键字主体为 type xxx interface，紧接着可以在方括号中编写方法集，用于声明和定义该接口所包含的方法集。
+更进一步的代码演示：
+type Human interface { Say(s string) error } type TestA string func (t TestA) Say(s string) error { fmt."><meta property="og:title" content="接口" />
+<meta property="og:description" content="2.3 接口 自古流传着一个传言&hellip;在 Go 语言面试的时候必有人会问接口（interface）的实现原理。这又是为什么？为何对接口如此执着？
+实际上，Go 语言的接口设计在整体扮演着非常重要的角色，没有他，很多程序估计都跑的不愉快。在 Go 语言的语义上，只要某个类型实现了所定义的一组方法集，则就认为其就是同一种类型，是一个东西。大家常常称其为鸭子类型（Duck typing），因为其与鸭子类型类型的定义相对吻合。
+在维基百科中，鸭子类型的谚语定义为 ”If it looks like a duck, swims like a duck, and quacks like a duck, then it probably is a duck.“，翻译过来就是 ”如果它看起来像鸭子，像鸭子一样游泳，像鸭子一样嘎嘎叫，那他就可以认为是鸭子“。
+回归到 Go 语言，在接口之下，接口又蕴含了怎么样的底层结构，其设计原理和思考又是什么呢？我们不能只看表面，接下来在这一章节中都会进行一一分析和道来。看看其深层到底是何 “物”。
+2.3.1 什么是 interface Go 语言中的接口声明：
+type Human interface { Say(s string) error } 关键字主体为 type xxx interface，紧接着可以在方括号中编写方法集，用于声明和定义该接口所包含的方法集。
+更进一步的代码演示：
+type Human interface { Say(s string) error } type TestA string func (t TestA) Say(s string) error { fmt." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://example.org/posts/ch2/interface/" />
+
+<title>接口 | Go 语言进阶之旅</title>
+<link rel="icon" href="/favicon.png" type="image/x-icon">
+<link rel="stylesheet" href="/book.min.6df681b0bb21155cba49f6078e3559216772d8e03e780d240c73ea21817ed5e5.css" integrity="sha256-bfaBsLshFVy6SfYHjjVZIWdy2OA&#43;eA0kDHPqIYF&#43;1eU=">
+<script defer src="/en.search.min.468cad2d3255934eb8d6d36965d20bac6a7844a1f0179b8dec4eeb8c0918d949.js" integrity="sha256-RoytLTJVk0641tNpZdILrGp4RKHwF5uN7E7rjAkY2Uk="></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/"><span>Go 语言进阶之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+  <ul>
+<li>第一章：开天辟地</li>
+<li>第二章：数据结构</li>
+<li>第三章：常用关键字</li>
+<li>第四章：高级应用
+<ul>
+<li><a href="/posts/ch2/reflect/">2.1 反射</a></li>
+<li><a href="/posts/ch2/channel/">2.2 通道</a></li>
+<li><a href="/posts/ch2/interface/"class=active>2.3 接口</a></li>
+<li><a href="/posts/ch2/context/">2.4 上下文</a></li>
+<li><a href="/posts/ch2/sync/">2.5 同步原语</a></li>
+<li><a href="/posts/ch2/timer/">2.6 定时器</a></li>
+</ul>
+</li>
+<li>第五章：标准库</li>
+<li>第六章：调度器</li>
+<li>第七章：内存管理</li>
+<li>第八章：垃圾回收</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>接口</strong>
+
+  <label for="toc-control">
+    <img src="/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#231-什么是-interface">2.3.1 什么是 interface</a></li>
+    <li><a href="#232-数据结构">2.3.2 数据结构</a>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+    <li><a href="#233-值接收者和指针接收者">2.3.3 值接收者和指针接收者</a>
+      <ul>
+        <li><a href="#2331-演示说明">2.3.3.1 演示说明</a></li>
+        <li><a href="#2332-值和指针">2.3.3.2 值和指针</a></li>
+        <li><a href="#2333-两者怎么用">2.3.3.3 两者怎么用</a></li>
+      </ul>
+    </li>
+    <li><a href="#234-类型断言">2.3.4 类型断言</a></li>
+    <li><a href="#235-类型转换">2.3.5 类型转换</a></li>
+    <li><a href="#236-动态分派">2.3.6 动态分派</a>
+      <ul>
+        <li><a href="#2361-存储方式">2.3.6.1 存储方式</a></li>
+        <li><a href="#2362-获取-itab-元素">2.3.6.2 获取 itab 元素</a></li>
+        <li><a href="#2363-新增-itab-元素">2.3.6.3 新增 itab 元素</a></li>
+      </ul>
+    </li>
+    <li><a href="#237-总结">2.3.7 总结</a></li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="23-接口">2.3 接口</h1>
+<p>自古流传着一个传言&hellip;在 Go 语言面试的时候必有人会问接口（interface）的实现原理。这又是为什么？为何对接口如此执着？</p>
+<p>实际上，Go 语言的接口设计在整体扮演着非常重要的角色，没有他，很多程序估计都跑的不愉快。在 Go 语言的语义上，只要某个类型实现了所定义的一组方法集，则就认为其就是同一种类型，是一个东西。大家常常称其为鸭子类型（Duck typing），因为其与鸭子类型类型的定义相对吻合。</p>
+<p><img src="https://image.eddycjy.com/30d3695c564aefdec527d91e11ea8e44.jpg" alt="图来自网络后重整" /></p>
+<p>在维基百科中，鸭子类型的谚语定义为 ”If it looks like a duck, swims like a duck, and quacks like a duck, then it probably is a duck.“，翻译过来就是 ”如果它看起来像鸭子，像鸭子一样游泳，像鸭子一样嘎嘎叫，那他就可以认为是鸭子“。</p>
+<p>回归到 Go 语言，在接口之下，接口又蕴含了怎么样的底层结构，其设计原理和思考又是什么呢？我们不能只看表面，接下来在这一章节中都会进行一一分析和道来。看看其深层到底是何 “物”。</p>
+<h2 id="231-什么是-interface">2.3.1 什么是 interface</h2>
+<p>Go 语言中的接口声明：</p>
+<pre><code>type Human interface {
+	Say(s string) error
+}
+</code></pre><p>关键字主体为 <code>type xxx interface</code>，紧接着可以在方括号中编写方法集，用于声明和定义该接口所包含的方法集。</p>
+<p>更进一步的代码演示：</p>
+<pre><code>type Human interface {
+	Say(s string) error
+}
+
+type TestA string
+
+func (t TestA) Say(s string) error {
+	fmt.Printf(&quot;煎鱼：%s\n&quot;, s)
+	return nil
+}
+
+func main() {
+	var h Human
+	var t TestA
+	_ = t.Say(&quot;炸鸡翅&quot;)
+	h = t
+	_ = h.Say(&quot;烤羊排&quot;)
+}
+</code></pre><p>输出结果：</p>
+<pre><code>煎鱼：炸鸡翅
+煎鱼：烤羊排
+</code></pre><p>我们在上述代码中，声明了一个名为 <code>Human</code> 的 <code>interface</code>，其包含一个 <code>Say</code> 方法。同时我们声明了一个 <code>TestA</code> 类型，也有自己的一个 <code>Say</code> 方法。他们两者的方法入参和出参类型均为一样。</p>
+<p>而与此同时，我们在主函数 <code>main</code> 中通过声明和赋值，成功将类型为 <code>TestA</code> 的变量 <code>t</code> 赋给了类型为 <code>Human</code> 的变量 <code>h</code>，也就是说两者只因有了个 <code>Say</code> 方法，在 Go 语言的编译器中就认为他们是 “一样” 的了，这也就是业界中常说的鸭子类型。</p>
+<h2 id="232-数据结构">2.3.2 数据结构</h2>
+<p>通过上面的功能代码一看，似乎 Go 语言非常优秀。一个接口，不同的类型，2 个包含相同的方法，也能够对标到一起。</p>
+<p>接口到底是怎么实现的呢？底层数据结构又是什么？带着问题，我们开始深挖细节之路。</p>
+<p>在 Go 语言中，接口的底层数据结构在运行时一共分为两类结构体（struct），分别是：</p>
+<p><img src="https://image.eddycjy.com/e94fa6f48b1c1da9d76f3b91cfbaa31a.jpg" alt="image" /></p>
+<ul>
+<li><code>runtime.eface</code> 结构体：表示不包含任何方法的空接口，也称为 empty interface。</li>
+<li><code>runtime.iface</code> 结构体：表示包含方法的接口。</li>
+</ul>
+<h4 id="2321-runtimeeface">2.3.2.1 runtime.eface</h4>
+<p>首先我们来介绍 <code>eface</code>，看看 “他” 到底是何许人也。源码如下：</p>
+<pre><code>type eface struct {
+	_type *_type
+	data  unsafe.Pointer
+}
+</code></pre><p>其表示不包含任何方法的空接口。在结构上来讲 <code>eface</code> 非常简单，就两个属性，分别是 <code>_type</code> 和 <code>data</code> 属性，分别代表底层的指向的类型信息和指向的值信息指针。</p>
+<p>再进一步到 <code>type</code> 属性里看看，其包含的类型信息更多：</p>
+<pre><code>type _type struct {
+	size       uintptr
+	ptrdata    uintptr 
+	hash       uint32
+	tflag      tflag
+	align      uint8
+	fieldAlign uint8
+	kind       uint8
+	equal func(unsafe.Pointer, unsafe.Pointer) bool
+	gcdata    *byte
+	str       nameOff
+	ptrToThis typeOff
+}
+</code></pre><ul>
+<li>size：类型的大小。</li>
+<li>ptrdata：包含所有指针的内存前缀的大小。</li>
+<li>hash：类型的 hash 值。此处提前计算好，可以避免在哈希表中计算。</li>
+<li>tflag：额外的类型信息标志。此处为类型的 flag 标志，主要用于反射。</li>
+<li>align：对应变量与该类型的内存对齐大小。</li>
+<li>fieldAlign：对应类型的结构体的内存对齐大小。</li>
+<li>kind：类型的枚举值。包含 Go 语言中的所有类型，例如：<code>kindBool</code>、<code>kindInt</code>、<code>kindInt8</code>、<code>kindInt16</code> 等。</li>
+<li>equal：用于比较此对象的回调函数。</li>
+<li>gcdata：存储垃圾收集器的 GC 类型数据。</li>
+</ul>
+<p>总结一句，就是类型信息所需的信息都会存储在这里面，其中包含字节大小、类型标志、内存对齐、GC 等相关属性。而在 <code>eface</code> 来讲，其由于没有方法集的包袱，因此只需要存储类型和值信息的指针即可，非常简单。</p>
+<h4 id="2322-runtimeiface">2.3.2.2 runtime.iface</h4>
+<p>其次就是我们日常在应用程序中应用的较多的 <code>iface</code>，源码如下：</p>
+<pre><code>type iface struct {
+	tab  *itab
+	data unsafe.Pointer
+}
+</code></pre><p>与 <code>eface</code> 结构体类型一样，主要也是分为类型和值信息，分别对应 <code>tab</code> 和 <code>data</code> 属性。但是我们再加思考一下，为什么 <code>iface</code> 能藏住那么多的方法集呢，难道施了黑魔法？</p>
+<p>为了解密，我们进一步深入看看 <code>itab</code> 结构体。源码如下：</p>
+<pre><code>type itab struct {
+	inter *interfacetype
+	_type *_type
+	hash  uint32 
+	_     [4]byte
+	fun   [1]uintptr 
+}
+</code></pre><ul>
+<li><code>inter</code>：接口的类型信息。</li>
+<li><code>_type</code>：具体类型信息</li>
+<li><code>hash</code>：<code>_type.hash</code> 的副本，用于目标类型和接口变量的类型对比判断。</li>
+<li><code>fun</code>：底层数组，存储接口的方法集的具体实现的地址，其包含一组函数指针，实现了接口方法的动态分派，且每次在接口发生变更时都会更新。</li>
+</ul>
+<p>对应 <code>func</code> 属性会在后面的章节进一步展开讲解，便于大家对于接口中的函数指针管理的使用和理解，在此可以先行思考长度为 1 的 uintptr 数组是如何做到存储多方法的？</p>
+<p>接下来我们进一步展开 <code>interfacetype</code> 结构体。源码如下：</p>
+<pre><code>type nameOff int32
+type typeOff int32
+
+type imethod struct {
+	name nameOff
+	ityp typeOff
+}
+
+type interfacetype struct {
+	typ     _type
+	pkgpath name
+	mhdr    []imethod
+}
+</code></pre><ul>
+<li><code>_type</code>：接口的具体类型信息。</li>
+<li><code>pkgpath</code>：接口的包（package）名信息。</li>
+<li><code>mhdr</code>：接口所定义的函数列表。</li>
+</ul>
+<p>而相对应 <code>interfacetype</code>，还有各种类型的 <code>type</code>。例如：<code>maptype</code>、<code>arraytype</code>、<code>chantype</code>、<code>slicetype</code> 等，都是针对具体的类型做的具体类型定义：</p>
+<pre><code>type arraytype struct {
+	typ   _type
+	elem  *_type
+	slice *_type
+	len   uintptr
+}
+
+type chantype struct {
+	typ  _type
+	elem *_type
+	dir  uintptr
+}
+...
+</code></pre><p>若有兴趣自行翻看 <code>runtime</code> 里相应源码即可，都是一些基本数据结构信息的存储和配套方法，就不在此一一展开讲解了。</p>
+<h4 id="2323-小结">2.3.2.3 小结</h4>
+<p><img src="https://image.eddycjy.com/e237b53637f2e6bcf0322cc6760c9824.jpg" alt="image" /></p>
+<p>总结来讲，接口的数据结构基本表示形式比较简单，就是类型和值描述。再根据其具体的区别，例如是否包含方法集，具体的接口类型等进行组合使用。</p>
+<h2 id="233-值接收者和指针接收者">2.3.3 值接收者和指针接收者</h2>
+<p>在接口的具体应用使用场景中，有一个是大家常常会碰到，甚至会对其产生较大纠结心里的东西。那就是到底用值接收者，又或是用指针接收者来声明。</p>
+<p><img src="https://image.eddycjy.com/358d192aec4fe2dbdc7ac0c8dbdeedad.jpg" alt="image" /></p>
+<h3 id="2331-演示说明">2.3.3.1 演示说明</h3>
+<p>演示代码如下：</p>
+<pre><code>type Human interface {
+	Say(s string) error
+	Eat(s string) error
+}
+
+type TestA struct{}
+
+func (t TestA) Say(s string) error {
+	fmt.Printf(&quot;说煎鱼：%s\n&quot;, s)
+	return nil
+}
+
+func (t *TestA) Eat(s string) error {
+	fmt.Printf(&quot;吃煎鱼：%s\n&quot;, s)
+	return nil
+}
+
+func main() {
+	var h Human = &amp;TestA{}
+	_ = h.Say(&quot;催更&quot;)
+	_ = h.Eat(&quot;真香&quot;)
+}
+</code></pre><p>在 <code>Human</code> 接口中，其包含 <code>Say</code> 和 <code>Eat</code> 方法，并且在 <code>TestA</code> 结构体中我们进行了针对性的实现。</p>
+<p>具体的区别就是：</p>
+<ul>
+<li>在 <code>Say</code> 方法中是值接收对象，如：<code>(t TestA)</code>。</li>
+<li>在 <code>Eat</code> 方法中是指针接收对象，如：<code>(t *TestA)</code>。</li>
+</ul>
+<p>最终的输出结果：</p>
+<pre><code>说煎鱼：催更
+吃煎鱼：真香
+</code></pre><h3 id="2332-值和指针">2.3.3.2 值和指针</h3>
+<p>如果我们将演示代码的主函数 main 改成下述这样：</p>
+<pre><code>func main() {
+	var h Human = TestA{}
+	_ = h.Say(&quot;催更&quot;)
+	_ = h.Eat(&quot;真香&quot;)
+}
+</code></pre><p>你觉得这段代码还能正常运行吗？在编译时会出现如下报错信息：</p>
+<pre><code># command-line-arguments
+./main.go:23:6: cannot use TestA literal (type TestA) as type Human in assignment:
+	TestA does not implement Human (Eat method has pointer receiver)
+</code></pre><p>显然是不能的。因为接口校验不对，编译器过不了。其根本原因在于 <code>Eat</code> 是指针接收者。而当声明改为 <code>TestA{}</code> 后，其就会变成值对象，所以不匹配。</p>
+<p>这时候又会出现新的问题，为什么在上面代码声明为 <code>&amp;TestA{}</code> 时，那肯定是指针引用了，那为什么 <code>Say</code> 方法又能正常运行，不会报错呢？</p>
+<p>其实 <code>TestA{}</code> 实现了 <code>Say</code> 方法，那么 <code>&amp;TestA{}</code> 也能自动拥有该方法。显然，这是 Go 语言自身在背后做了一些事情。</p>
+<p>因此如果我们实现了一个值对象的接收者时，也会相应拥有了一个指针接收者。两者并不会互相影响，因为值对象会产生值拷贝，对象会独立开来。</p>
+<p>而指针对象的接收者不行，因为指针引用的对象，在应用上是期望能够直接对源接收者的值进行修改，若又支持值接收者，显然是不符合其语义的。</p>
+<h3 id="2333-两者怎么用">2.3.3.3 两者怎么用</h3>
+<p>既然支持值接收，又支持指针接收。那平时在工程应用开发中，到底用谁？还是说随便用？</p>
+<p>其实问题的答案，在前面就有提到。本质上还是要看你业务逻辑所期望修改的是什么？还是说程序很严谨，每次都重新 <code>new</code> 一个，是值又或是指针引用对于程序逻辑的结果都没有任何的影响。</p>
+<p>总结一下，如果你想使用指针接收者，可以想想是否有以下诉求：</p>
+<ul>
+<li>期望接收者直接修改能够直接修改源值。</li>
+<li>期望在大结构体的情况下，性能更好，可以在理论上避免每次值拷贝，但也会有增加别的开销，需要具体情况具体权衡。</li>
+</ul>
+<p>但若应用场景没什么区别，只是个人习惯问题就不用过于纠结了，适度统一也是很重要的一环。</p>
+<h2 id="234-类型断言">2.3.4 类型断言</h2>
+<p>在 Go 语言中使用接口，必搭配一个 “技能”。那就是进行类型断言（type assertion）：</p>
+<pre><code>var i interface{} = &quot;吃煎鱼&quot;
+
+// 进行变量断言，若不判断容易出现 panic
+s := i.(string)
+
+// 进行安全断言
+s, ok := i.(string)
+</code></pre><p>在 <code>switch case</code> 中，还有另外一种写法：</p>
+<pre><code>var i interface{} = &quot;炸煎鱼&quot;
+
+// 进行 switch 断言
+switch i.(type) {
+case string:
+    // do something...
+case int:
+    // do something...
+case float64:
+    // do something...
+}
+</code></pre><p>采取的是 <code>(变量).(type)</code> 的调用方式，再给予 <code>case</code> 不同的类型进行判断识别。在 Go 语言的背后，类型断言其实是在编译器翻译后，根据 <code>iface</code> 和 <code>eface</code> 分别对应了下述方法：</p>
+<pre><code>func assertI2I2(inter *interfacetype, i iface) (r iface, b bool) {
+	tab := i.tab
+	if tab == nil {
+		return
+	}
+	if tab.inter != inter {
+		tab = getitab(inter, tab._type, true)
+		if tab == nil {
+			return
+		}
+	}
+	r.tab = tab
+	r.data = i.data
+	b = true
+	return
+}
+func assertI2I(inter *interfacetype, i iface) (r iface)
+
+func assertE2I2(inter *interfacetype, e eface) (r iface, b bool)
+func assertE2I(inter *interfacetype, e eface) (r iface)
+</code></pre><p>主要是根据接口的类型信息进行一轮判断和识别，基本就完成了。主要核心在于 <code>getitab</code> 方法，会在后面进行统一介绍和说明。</p>
+<h2 id="235-类型转换">2.3.5 类型转换</h2>
+<p>演示代码如下：</p>
+<pre><code>func main() {
+	x := &quot;煎鱼&quot;
+	var v interface{} = x
+	fmt.Println(v)
+}
+</code></pre><p>查看汇编代码：</p>
+<pre><code>	0x0021 00033 (main.go:9)	LEAQ	go.string.&quot;煎鱼&quot;(SB), AX
+	0x0028 00040 (main.go:9)	MOVQ	AX, (SP)
+	0x002c 00044 (main.go:9)	MOVQ	$6, 8(SP)
+	0x0035 00053 (main.go:9)	PCDATA	$1, $0
+	0x0035 00053 (main.go:9)	CALL	runtime.convTstring(SB)
+	0x003a 00058 (main.go:9)	MOVQ	16(SP), AX
+	0x003f 00063 (main.go:10)	XORPS	X0, X0
+</code></pre><p>主要对应了 <code>runtime.convTstring</code> 方法。同时很显然其是根据类型来区分来方法：</p>
+<pre><code>func convTstring(val string) (x unsafe.Pointer) {
+	if val == &quot;&quot; {
+		x = unsafe.Pointer(&amp;zeroVal[0])
+	} else {
+		x = mallocgc(unsafe.Sizeof(val), stringType, true)
+		*(*string)(x) = val
+	}
+	return
+}
+
+func convT16(val uint16) (x unsafe.Pointer)
+func convT32(val uint32) (x unsafe.Pointer)
+func convT64(val uint64) (x unsafe.Pointer)
+func convTstring(val string) (x unsafe.Pointer) 
+func convTslice(val []byte) (x unsafe.Pointer)
+func convT2Enoptr(t *_type, elem unsafe.Pointer) (e eface)
+func convT2I(tab *itab, elem unsafe.Pointer) (i iface)
+...
+</code></pre><h2 id="236-动态分派">2.3.6 动态分派</h2>
+<p>前面有提到接口中的 <code>fun [1]uintptr</code> 属性会可以存储接口的方法集，但不知道为什么。</p>
+<p>接下来我们将进行具体的分析，演示代码：</p>
+<pre><code>type Human interface {
+	Say(s string) error
+	Eat(s string) error
+	Walk(s string) error
+}
+
+type TestA string
+
+func (t TestA) Say(s string) error {
+	fmt.Printf(&quot;煎鱼：%s\n&quot;, s)
+	return nil
+}
+func (t TestA) Eat(s string) error {
+	fmt.Printf(&quot;煎鱼：%s\n&quot;, s)
+	return nil
+}
+
+func (t TestA) Walk(s string) error {
+	fmt.Printf(&quot;煎鱼：%s\n&quot;, s)
+	return nil
+}
+
+func main() {
+	var h Human
+	var t TestA
+	h = t
+	_ = h.Eat(&quot;烤羊排&quot;)
+	_ = h.Say(&quot;炸鸡翅&quot;)
+	_ = h.Walk(&quot;去炸鸡翅&quot;)
+}
+</code></pre><h3 id="2361-存储方式">2.3.6.1 存储方式</h3>
+<p>执行 <code>go build -gcflags '-l' -o awesomeProject .</code> 编译后，再次执行 <code>go tool objdump -s &quot;main&quot; awesomeProject</code>。</p>
+<p>查看具体的汇编代码：</p>
+<pre><code>  LEAQ go.itab.main.TestA,main.Human(SB), AX	
+  TESTB AL, 0(AX)					
+  MOVQ 0x10(SP), AX				
+  MOVQ AX, 0x28(SP)				
+  MOVQ go.itab.main.TestA,main.Human+32(SB), CX	
+  MOVQ AX, 0(SP)					
+  LEAQ go.string.*+3048(SB), DX			
+  MOVQ DX, 0x8(SP)				
+  MOVQ $0x9, 0x10(SP)				
+  CALL CX						
+  MOVQ go.itab.main.TestA,main.Human+24(SB), AX	
+  MOVQ 0x28(SP), CX				
+  MOVQ CX, 0(SP)					
+  LEAQ go.string.*+3057(SB), DX			
+  MOVQ DX, 0x8(SP)				
+  MOVQ $0x9, 0x10(SP)				
+  CALL AX						
+  MOVQ go.itab.main.TestA,main.Human+40(SB), AX	
+  MOVQ 0x28(SP), CX				
+  MOVQ CX, 0(SP)					
+  LEAQ go.string.*+4973(SB), CX			
+  MOVQ CX, 0x8(SP)				
+  MOVQ $0xc, 0x10(SP)				
+  CALL AX			
+</code></pre><p>结合来看，虽然 <code>fun</code> 属性的类型是 <code>[1]uintptr</code>，只有一个元素，但其实就是存放了接口方法集的首个方法的地址信息,接着根据顺序往后计算并获取就好了。也就是说其是存在一定规律的。在存入方法时就决定了，所以获取也能明确。</p>
+<p>我们进一步展开，看看 itab hash table 是如何获取和新增的。</p>
+<h3 id="2362-获取-itab-元素">2.3.6.2 获取 itab 元素</h3>
+<p><code>getitab</code> 方法的主要作用是获取 <code>itab</code> 元素，若不存在则新增。源码如下：</p>
+<pre><code>func getitab(inter *interfacetype, typ *_type, canfail bool) *itab {
+	// 省略一些边界、异常处理
+	var m *itab
+
+	t := (*itabTableType)(atomic.Loadp(unsafe.Pointer(&amp;itabTable)))
+	if m = t.find(inter, typ); m != nil {
+		goto finish
+	}
+
+	lock(&amp;itabLock)
+	if m = itabTable.find(inter, typ); m != nil {
+		unlock(&amp;itabLock)
+		goto finish
+	}
+
+	m = (*itab)(persistentalloc(unsafe.Sizeof(itab{})+uintptr(len(inter.mhdr)-1)*sys.PtrSize, 0, &amp;memstats.other_sys))
+	m.inter = inter
+	m._type = typ
+	m.hash = 0
+	m.init()
+	itabAdd(m)
+	unlock(&amp;itabLock)
+finish:
+	if m.fun[0] != 0 {
+		return m
+	}
+
+	panic(&amp;TypeAssertionError{concrete: typ, asserted: &amp;inter.typ, missingMethod: m.init()})
+}
+</code></pre><ul>
+<li>调用 <code>atomic.Loadp</code> 方法加载并查找现有的 itab hash table，看看是否是否可以找到所需的 itab 元素。</li>
+<li>若没有找到，则调用 <code>lock</code> 方法对 <code>itabLock</code> 上锁，并进行重试（再一次查找）。
+<ul>
+<li>若找到，则跳到 <code>finish</code> 标识的收尾步骤。</li>
+<li>若没有找到，则新生成一个 itab 元素，并调用 <code>itabAdd</code> 方法新增到全局的 hash table 中。</li>
+</ul>
+</li>
+<li>返回 <code>fun</code> 属性的首位地址，继续后续业务逻辑。</li>
+</ul>
+<h3 id="2363-新增-itab-元素">2.3.6.3 新增 itab 元素</h3>
+<p><code>itabAdd</code> 方法的主要作用是将所生成好的 <code>itab</code> 元素新增到 itab hash table 中。源码如下：</p>
+<pre><code>func itabAdd(m *itab) {
+	// 省略一些边界、异常处理
+	t := itabTable
+	if t.count &gt;= 3*(t.size/4) { // 75% load factor
+		t2 := (*itabTableType)(mallocgc((2+2*t.size)*sys.PtrSize, nil, true))
+		t2.size = t.size * 2
+		iterate_itabs(t2.add)
+		if t2.count != t.count {
+			throw(&quot;mismatched count during itab table copy&quot;)
+		}
+
+		atomicstorep(unsafe.Pointer(&amp;itabTable), unsafe.Pointer(t2))
+		t = itabTable
+	}
+	t.add(m)
+}
+</code></pre><ul>
+<li>检查 itab hash table 的容量情况，查看容量情况是否已经满足大于或等于 75%。</li>
+<li>若满足扩容策略，则调用 <code>mallocgc</code> 方法申请内存，按既有 <code>size</code> 大小扩容双倍容量。</li>
+<li>若不满足扩容策略，则直接新增 <code>itab</code> 元素到 hash table 中。</li>
+</ul>
+<h2 id="237-总结">2.3.7 总结</h2>
+<p>在本文中，我们先介绍了 Go 语言接口的 <code>runtime.eface</code> 和 <code>runtime.iface</code> 两个基本数据结构，其代表了一切的开端。随后针对值接受者和指针接收者进行了详细的说明，同时日常用的较多的类型断言和转换也一一进行了描述。</p>
+<p>最后对接口的多方法这个神秘的地方进行了基本分析和了解，相信这一番轮流吸收下来，能够打开大家对接口的一个新的理解。</p>
+</article>
+ 
+      <div class="book-footer justify-between"></div>
+<p>本图书由<a href= "https://github.com/eddycjy"> 煎鱼 </a>©2020 版权所有，所有文章采用<a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh">知识署名-非商业性使用-禁止演绎 4.0 国际</a>进行许可。</p>
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+<script src="https://utteranc.es/client.js"
+    repo="eddycjy/go-advanced-book-comments"
+    issue-term="title"
+    theme="github-light"
+    crossorigin="anonymous"
+    async>
+</script>
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#231-什么是-interface">2.3.1 什么是 interface</a></li>
+    <li><a href="#232-数据结构">2.3.2 数据结构</a>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+    <li><a href="#233-值接收者和指针接收者">2.3.3 值接收者和指针接收者</a>
+      <ul>
+        <li><a href="#2331-演示说明">2.3.3.1 演示说明</a></li>
+        <li><a href="#2332-值和指针">2.3.3.2 值和指针</a></li>
+        <li><a href="#2333-两者怎么用">2.3.3.3 两者怎么用</a></li>
+      </ul>
+    </li>
+    <li><a href="#234-类型断言">2.3.4 类型断言</a></li>
+    <li><a href="#235-类型转换">2.3.5 类型转换</a></li>
+    <li><a href="#236-动态分派">2.3.6 动态分派</a>
+      <ul>
+        <li><a href="#2361-存储方式">2.3.6.1 存储方式</a></li>
+        <li><a href="#2362-获取-itab-元素">2.3.6.2 获取 itab 元素</a></li>
+        <li><a href="#2363-新增-itab-元素">2.3.6.3 新增 itab 元素</a></li>
+      </ul>
+    </li>
+    <li><a href="#237-总结">2.3.7 总结</a></li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

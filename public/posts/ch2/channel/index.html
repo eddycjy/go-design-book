@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="2.1 通道 Go 语言中的一大利器那就是能够非常方便的使用 go 关键字来进行各种并发，而并发后又必然会涉及通信。
+Channel 自然而然就成为了 Go 语言开发者中必须要明白明了的一个 “东西” 了，更别提实际工程应用和日常面试了，属于必知必会。
+什么是 channel 在 Go 语言中，channel 可以称其为通道，也可以叫管道。channel 主要常见于与 goroutine&#43;select 搭配使用，再结合语录的描述。可以知道 channel 就是用于 goroutine 的数据通信：
+演示代码如下：
+func main() { ch := make(chan string) go func() { ch &lt;- &quot;煎鱼&quot; }() msg := &lt;-ch fmt.Println(msg) } 在 goroutine1 中写入 “煎鱼” 到变量 ch 中，goroutine2 监听变量 ch，并阻塞等待读取到值 “煎鱼” 最终返回，结束流程。
+在此 channel 承载着一个衔接器的桥梁：
+这也是 channel 的经典思想了，不要通过共享内存来通信，而是通过通信来实现内存共享（Do not communicate by sharing memory; instead, share memory by communicating）。"><meta property="og:title" content="通道" />
+<meta property="og:description" content="2.1 通道 Go 语言中的一大利器那就是能够非常方便的使用 go 关键字来进行各种并发，而并发后又必然会涉及通信。
+Channel 自然而然就成为了 Go 语言开发者中必须要明白明了的一个 “东西” 了，更别提实际工程应用和日常面试了，属于必知必会。
+什么是 channel 在 Go 语言中，channel 可以称其为通道，也可以叫管道。channel 主要常见于与 goroutine&#43;select 搭配使用，再结合语录的描述。可以知道 channel 就是用于 goroutine 的数据通信：
+演示代码如下：
+func main() { ch := make(chan string) go func() { ch &lt;- &quot;煎鱼&quot; }() msg := &lt;-ch fmt.Println(msg) } 在 goroutine1 中写入 “煎鱼” 到变量 ch 中，goroutine2 监听变量 ch，并阻塞等待读取到值 “煎鱼” 最终返回，结束流程。
+在此 channel 承载着一个衔接器的桥梁：
+这也是 channel 的经典思想了，不要通过共享内存来通信，而是通过通信来实现内存共享（Do not communicate by sharing memory; instead, share memory by communicating）。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://example.org/posts/ch2/channel/" />
+
+<title>通道 | Go 语言进阶之旅</title>
+<link rel="icon" href="/favicon.png" type="image/x-icon">
+<link rel="stylesheet" href="/book.min.6df681b0bb21155cba49f6078e3559216772d8e03e780d240c73ea21817ed5e5.css" integrity="sha256-bfaBsLshFVy6SfYHjjVZIWdy2OA&#43;eA0kDHPqIYF&#43;1eU=">
+<script defer src="/en.search.min.468cad2d3255934eb8d6d36965d20bac6a7844a1f0179b8dec4eeb8c0918d949.js" integrity="sha256-RoytLTJVk0641tNpZdILrGp4RKHwF5uN7E7rjAkY2Uk="></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  
+</head>
+
+<body>
+  <input type="checkbox" class="hidden" id="menu-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/"><span>Go 语言进阶之旅</span>
+  </a>
+</h2>
+
+
+<div class="book-search">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+  <ul>
+<li>第一章：开天辟地</li>
+<li>第二章：数据结构</li>
+<li>第三章：常用关键字</li>
+<li>第四章：高级应用
+<ul>
+<li><a href="/posts/ch2/reflect/">2.1 反射</a></li>
+<li><a href="/posts/ch2/channel/"class=active>2.2 通道</a></li>
+<li><a href="/posts/ch2/interface/">2.3 接口</a></li>
+<li><a href="/posts/ch2/context/">2.4 上下文</a></li>
+<li><a href="/posts/ch2/sync/">2.5 同步原语</a></li>
+<li><a href="/posts/ch2/timer/">2.6 定时器</a></li>
+</ul>
+</li>
+<li>第五章：标准库</li>
+<li>第六章：调度器</li>
+<li>第七章：内存管理</li>
+<li>第八章：垃圾回收</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>通道</strong>
+
+  <label for="toc-control">
+    <img src="/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+  </label>
+</div>
+
+
+  
+    <input type="checkbox" class="hidden" id="toc-control" />
+    <aside class="hidden clearfix">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#什么是-channel">什么是 channel</a></li>
+    <li><a href="#channel-基本特性">channel 基本特性</a>
+      <ul>
+        <li><a href="#无缓冲-channel">无缓冲 channel</a></li>
+        <li><a href="#缓冲-channel">缓冲 channel</a></li>
+      </ul>
+    </li>
+    <li><a href="#channel-本质">channel 本质</a>
+      <ul>
+        <li><a href="#基本原理">基本原理</a></li>
+        <li><a href="#数据结构">数据结构</a></li>
+      </ul>
+    </li>
+    <li><a href="#channel-实现原理">channel 实现原理</a>
+      <ul>
+        <li><a href="#创建-chan">创建 chan</a></li>
+        <li><a href="#发送数据">发送数据</a></li>
+        <li><a href="#接收数据">接收数据</a></li>
+        <li><a href="#关闭-chan">关闭 chan</a></li>
+      </ul>
+    </li>
+    <li><a href="#channel-sendrecv-分析">channel send/recv 分析</a>
+      <ul>
+        <li><a href="#send">send</a></li>
+        <li><a href="#recv">recv</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+
+    </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="21-通道">2.1 通道</h1>
+<p>Go 语言中的一大利器那就是能够非常方便的使用 <code>go</code> 关键字来进行各种并发，而并发后又必然会涉及通信。</p>
+<p>Channel 自然而然就成为了 Go 语言开发者中必须要明白明了的一个 “东西” 了，更别提实际工程应用和日常面试了，属于必知必会。</p>
+<h2 id="什么是-channel">什么是 channel</h2>
+<p>在 Go 语言中，channel 可以称其为通道，也可以叫管道。channel 主要常见于与 goroutine+select 搭配使用，再结合语录的描述。可以知道 channel 就是用于 goroutine 的数据通信：</p>
+<p>演示代码如下：</p>
+<pre><code>func main() {
+	ch := make(chan string)
+	go func() {
+		ch &lt;- &quot;煎鱼&quot;
+	}()
+
+	msg := &lt;-ch
+	fmt.Println(msg)
+}
+</code></pre><p>在 goroutine1 中写入 “煎鱼” 到变量 <code>ch</code> 中，goroutine2 监听变量 <code>ch</code>，并阻塞等待读取到值 “煎鱼” 最终返回，结束流程。</p>
+<p>在此 channel 承载着一个衔接器的桥梁：</p>
+<p><img src="https://image.eddycjy.com/3b21243481274df263d43c95eea5fc3a.jpg" alt="image" /></p>
+<p>这也是 channel 的经典思想了，<strong>不要通过共享内存来通信，而是通过通信来实现内存共享</strong>（Do not communicate by sharing memory; instead, share memory by communicating）。</p>
+<p>从模式上来看，其就是在多个 goroutine 借助 channel 来传输数据，实现了跨 goroutine 间的数据传输，多者独立运行，不需要强关联，更不影响对方的 goroutine 状态。不存在 goroutine1 对 goroutine2 进行直传的情况。</p>
+<p>这里思考一个问题，那 goroutine1 和 goroutine2 又怎么互相知道自己的数据 ”到“ 了呢？</p>
+<h2 id="channel-基本特性">channel 基本特性</h2>
+<p>在 Go 语言中，channel 的关键字为 <code>chan</code>，数据流向的表现方式为 <code>&lt;-</code>，代码解释方向是从左到右，据此就能明白通道的数据流转方向了。</p>
+<p>channel 共有两种模式，分别是：双向和单向；三种表现方式，分别是：声明双向通道：<code>chan T</code>、声明只允许发送的通道：<code>chan &lt;- T</code>、声明只允许接收的通道：<code>&lt;- chan T</code>。</p>
+<p>channel 中还分为 “无缓冲 channel” 和 “缓冲 channel”。</p>
+<p>演示代码如下：</p>
+<pre><code>// 无缓冲
+ch1 := make(chan int)
+
+// 缓冲区为 3
+ch2 := make(chan int, 3)
+</code></pre><p>接下来我们进一步展开这两类来看。</p>
+<h3 id="无缓冲-channel">无缓冲 channel</h3>
+<p>无缓冲的 channel（unbuffered channel），其缓冲区大小则默认为 0。在功能上其接受者会阻塞等待并阻塞应用程序，直至收到通信和接收到数据。</p>
+<p>这种常用于两个 goroutine 间互相同步等待的应用场景：</p>
+<p><img src="https://image.eddycjy.com/6d5420f5f0f7f3c868123d44fda51ef4.jpg" alt="unbuffered channel" /></p>
+<p>（引用 William Kennedy 的图）</p>
+<h3 id="缓冲-channel">缓冲 channel</h3>
+<p>有缓存的 channel（buffered channel），其缓存区大小是根据所设置的值来调整。在功能上，若缓冲区未满则不会阻塞，会源源不断的进行传输。当缓冲区满了后，发送者就会阻塞并等待。而当缓冲区为空时，接受者就会阻塞并等待，直至有新的数据：</p>
+<p><img src="https://image.eddycjy.com/7793e0173718cb274d03a51a7910c688.jpg" alt="buffered channel" /></p>
+<p>（引用 William Kennedy 的图）</p>
+<p>在实际的应用场景中，两者根据业务情况选用就可以了，不需要太过纠结于两者是否有性能差距，没意义。</p>
+<h2 id="channel-本质">channel 本质</h2>
+<p>channel 听起来实现了一个非常酷的东西，也是日常工作中常常会被面试官问到的问题。</p>
+<p>但其实 channel 并没有那么的 &ldquo;神秘&rdquo;，就是一个环形队列的配合。接下来我们一步步的剖开 channel，看看里面到底是什么，怎么实现的跨 goroutine 通信，数据结构又是什么，两者又如何实现数据传输的？</p>
+<h3 id="基本原理">基本原理</h3>
+<p>本质上 channel 在设计上就是环形队列。其包含发送方队列、接收方队列，加上互斥锁 <code>mutex</code> 等结构。</p>
+<p>channel 是一个有锁的环形队列：</p>
+<p><img src="https://image.eddycjy.com/6d45fd823bb187d7e710ee8d34a46d66.jpg" alt="image" /></p>
+<h3 id="数据结构">数据结构</h3>
+<p>hchan 结构体是 channel 在运行时的具体表现形式：</p>
+<pre><code>// src/runtime/chan.go
+type hchan struct {
+	qcount   uint      
+	dataqsiz uint     
+	buf      unsafe.Pointer 
+	elemsize uint16
+	closed   uint32
+	elemtype *_type 
+	sendx    uint  
+	recvx    uint  
+	recvq    waitq  
+	sendq    waitq  
+
+	lock mutex
+}
+</code></pre><ul>
+<li>qcount：队列中的元素总数量。</li>
+<li>dataqsiz：循环队列的长度。</li>
+<li>buf：指向长度为 dataqsiz 的底层数组，仅有当 channel 为缓冲型的才有意义。</li>
+<li>elemsize：能够接受和发送的元素大小。</li>
+<li>closed：是否关闭。</li>
+<li>elemtype：能够接受和发送的元素类型。</li>
+<li>sendx：已发送元素在循环队列中的索引位置。</li>
+<li>recvx：已接收元素在循环队列中的索引位置。</li>
+<li>recvq：接受者的 sudog 等待队列（缓冲区不足时阻塞等待的 goroutine）。</li>
+<li>sendq：发送者的 sudog 等待队列。</li>
+</ul>
+<p>在数据结构中，我们可以看到 <code>recvq</code> 和 <code>sendq</code>，其表现为等待队列，其类型为 <code>runtime.waitq</code> 的双向链表结构：</p>
+<pre><code>type waitq struct {
+	first *sudog
+	last  *sudog
+}
+</code></pre><p>且无论是 <code>first</code> 属性又或是 <code>last</code>，其类型都为 <code>runtime.sudog</code> 结构体：</p>
+<pre><code>type sudog struct {
+	g *g
+
+	next *sudog
+	prev *sudog
+	elem unsafe.Pointer
+	...
+}
+</code></pre><ul>
+<li>g：指向当前的 goroutine。</li>
+<li>next：指向下一个 g。</li>
+<li>prev：指向上一个 g。</li>
+<li>elem：数据元素，可能会指向堆栈。</li>
+</ul>
+<p>sudog 是 Go 语言中用于存放协程状态为阻塞的 goroutine 的双向链表抽象，你可以直接理解为一个正在等待的 goroutine 就可以了。</p>
+<p>在后续的实现原理分析中，基本围绕着上述数据结构进行大量的讨论，建议可以认真思考一下。</p>
+<h2 id="channel-实现原理">channel 实现原理</h2>
+<p>在了解了 channel 的基本原理后，我们进入到与应用工程中更紧密相关的部分，那就是 channel 的四大块操作，分别是： “创建、发送、接收、关闭”。</p>
+<p>我们将针对这四块进行细致的分析和讲解。因此接下来的内容比较庞大，内容上将分为两个角度来讲述，分别是先从源码角度进行分析，再进行图示汇总。以便于大家更好的理解和思考</p>
+<h3 id="创建-chan">创建 chan</h3>
+<p>创建 channel 的演示代码：</p>
+<pre><code>ch := make(chan string)
+</code></pre><p>其在编译器翻译后对应 <code>runtime.makechan</code> 或 <code>runtime.makechan64</code> 方法：</p>
+<pre><code>// 通用创建方法
+func makechan(t *chantype, size int) *hchan
+
+// 类型为 int64 的进行特殊处理
+func makechan64(t *chantype, size int64) *hchan
+</code></pre><p>通过前面我们得知 channel 的基本单位是 <code>hchan</code> 结构体，那么在创建 channel 时，究竟还需要做什么是呢？</p>
+<p>我们一起分析一下 <code>makechan</code> 方法，就能知道了。</p>
+<p>源码如下：</p>
+<pre><code>// src/runtime/chan.go
+func makechan(t *chantype, size int) *hchan {
+	elem := t.elem
+	mem, _ := math.MulUintptr(elem.size, uintptr(size))
+
+	var c *hchan
+	switch {
+	case mem == 0:
+		c = (*hchan)(mallocgc(hchanSize, nil, true))
+		c.buf = c.raceaddr()
+	case elem.ptrdata == 0:
+		c = (*hchan)(mallocgc(hchanSize+mem, nil, true))
+		c.buf = add(unsafe.Pointer(c), hchanSize)
+	default:
+		c = new(hchan)
+		c.buf = mallocgc(mem, elem, true)
+	}
+
+	c.elemsize = uint16(elem.size)
+	c.elemtype = elem
+	c.dataqsiz = uint(size)
+	lockInit(&amp;c.lock, lockRankHchan)
+
+	return c
+}
+</code></pre><p>创建 channel 的逻辑主要分为三大块：</p>
+<ul>
+<li>当前 channel 不存在缓冲区，也就是元素大小为 0 的情况下，就会调用 <code>mallocgc</code> 方法分配一段连续的内存空间。</li>
+<li>当前 channel 存储的类型存在指针引用，就会连同 <code>hchan</code> 和底层数组同时分配一段连续的内存空间。</li>
+<li>通用情况，默认分配相匹配的连续内存空间。</li>
+</ul>
+<p>需要注意到一块特殊点，那就是 channel 的创建都是调用的 <code>mallocgc</code> 方法，也就是 channel 都是创建在堆上的。因此 channel 是会被 GC 回收的，自然也不总是需要 <code>close</code> 方法来进行显示关闭了。</p>
+<p>从整体上来讲，<code>makechan</code> 方法的逻辑比较简单，就是创建 <code>hchan</code> 并分配合适的 <code>buf</code> 大小的堆上内存空间。</p>
+<h3 id="发送数据">发送数据</h3>
+<p>channel 发送数据的演示代码：</p>
+<pre><code>go func() {
+    ch &lt;- &quot;煎鱼&quot;
+}()
+</code></pre><p>其在编译器翻译后对应 <code>runtime.chansend1</code> 方法：</p>
+<pre><code>func chansend1(c *hchan, elem unsafe.Pointer) {
+	chansend(c, elem, true, getcallerpc())
+}
+</code></pre><p>其作为编译后的入口方法，实则指向真正的实现逻辑，也就是 <code>chansend</code> 方法。</p>
+<h4 id="前置处理">前置处理</h4>
+<p>在第一部分中，我们先看看 chan 发送的一些前置判断和处理：</p>
+<pre><code>func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
+	if c == nil {
+		if !block {
+			return false
+		}
+		gopark(nil, nil, waitReasonChanSendNilChan, traceEvGoStop, 2)
+		throw(&quot;unreachable&quot;)
+	}
+	
+	if !block &amp;&amp; c.closed == 0 &amp;&amp; full(c) {
+		return false
+	}
+
+	// 省略一些调试相关
+	...
+}
+
+func full(c *hchan) bool {
+	if c.dataqsiz == 0 {
+		return c.recvq.first == nil
+	}
+
+	return c.qcount == c.dataqsiz
+}
+</code></pre><p>一开始 <code>chansend</code> 方法在会先判断当前的 channel 是否为 nil。若为 nil，在逻辑上来讲就是向 nil channel 发送数据，就会调用 <code>gopark</code> 方法使得当前 Goroutine 休眠，进而出现死锁崩溃，表象就是出现 <code>panic</code> 事件来快速失败。</p>
+<p>紧接着会对非阻塞的 channel 进行一个上限判断，看看是否快速失败。</p>
+<p>失败的场景如下：</p>
+<ul>
+<li>若非阻塞且未关闭，同时底层数据 dataqsiz 大小为 0（缓冲区无元素），则会返回失败。。</li>
+<li>若是 qcount 与 dataqsiz 大小相同（缓冲区已满）时，则会返回失败。</li>
+</ul>
+<h4 id="上互斥锁">上互斥锁</h4>
+<p>在完成了 channel 的前置判断后，即将在进入发送数据的处理前，channel 会进行上锁：</p>
+<pre><code>func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
+	...
+	lock(&amp;c.lock)
+}
+</code></pre><p>上锁后就能保住并发安全。另外我们也可以考虑到，这种场景会相对依赖单元测试的覆盖，因为一旦没考虑周全，漏上锁了，基本就会出问题。</p>
+<h4 id="直接发送">直接发送</h4>
+<p>在正式开始发送前，加锁之后，会对 channel 进行一次状态判断（是否关闭）：</p>
+<pre><code>func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
+	...
+	if c.closed != 0 {
+		unlock(&amp;c.lock)
+		panic(plainError(&quot;send on closed channel&quot;))
+	}
+
+	if sg := c.recvq.dequeue(); sg != nil {
+		send(c, sg, ep, func() { unlock(&amp;c.lock) }, 3)
+		return true
+	}
+}
+</code></pre><p>这种情况是最为基础的，也就是当前 channel 有正在阻塞等待的接收方，那么只需要直接发送就可以了。</p>
+<h4 id="缓冲发送">缓冲发送</h4>
+<p>非直接发送，那么就考虑第二种场景，判断 channel 缓冲区中是否还有空间：</p>
+<pre><code>func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
+	...
+	if c.qcount &lt; c.dataqsiz {
+		qp := chanbuf(c, c.sendx)
+		typedmemmove(c.elemtype, qp, ep)
+		c.sendx++
+		if c.sendx == c.dataqsiz {
+			c.sendx = 0
+		}
+		c.qcount++
+		unlock(&amp;c.lock)
+		return true
+	}
+
+	if !block {
+		unlock(&amp;c.lock)
+		return false
+	}
+}
+</code></pre><p>会对缓冲区进行判定（<code>qcount</code> 和 <code>dataqsiz</code> 字段），以此识别缓冲区的剩余空间。紧接进行如下操作：</p>
+<ul>
+<li>调用 <code>chanbuf</code> 方法，以此获得底层缓冲数据中位于 sendx 索引的元素指针值。</li>
+<li>调用 <code>typedmemmove</code> 方法，将所需发送的数据拷贝到缓冲区中。</li>
+<li>数据拷贝后，对 sendx 索引自行自增 1。同时若 sendx 与 dataqsiz 大小一致，则归 0（环形队列）。</li>
+<li>自增完成后，队列总数同时自增 1。解锁互斥锁，返回结果。</li>
+</ul>
+<p>至此针对缓冲区的数据操作完成。但若没有走进缓冲区处理的逻辑，则会判断当前是否阻塞 channel，若为非阻塞，将会解锁并直接返回失败。</p>
+<p>配合图示如下：</p>
+<p><img src="https://image.eddycjy.com/38b112ad3e56e562380506c15df4d6d1.jpg" alt="image" /></p>
+<h4 id="阻塞发送">阻塞发送</h4>
+<p>在进行了各式各样的层层筛选后，接下来进入阻塞等待发送的过程：</p>
+<pre><code>func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
+	...
+	gp := getg()
+	mysg := acquireSudog()
+	mysg.releasetime = 0
+	if t0 != 0 {
+		mysg.releasetime = -1
+	}
+
+	mysg.elem = ep
+	mysg.waitlink = nil
+	mysg.g = gp
+	mysg.isSelect = false
+	mysg.c = c
+	gp.waiting = mysg
+	gp.param = nil
+	c.sendq.enqueue(mysg)
+
+	atomic.Store8(&amp;gp.parkingOnChan, 1)
+	gopark(chanparkcommit, unsafe.Pointer(&amp;c.lock), waitReasonChanSend, traceEvGoBlockSend, 2)
+
+	KeepAlive(ep)
+}
+</code></pre><ul>
+<li>调用 <code>getg</code> 方法获取当前 goroutine 的指针，用于后续发送数据。</li>
+<li>调用 <code>acquireSudog</code> 方法获取 <code>sudog</code> 结构体，并设置当前 sudog 具体的待发送数据信息和状态。</li>
+<li>调用 <code>c.sendq.enqueue</code> 方法将刚刚所获取的 <code>sudog</code> 加入待发送的等待队列。</li>
+<li>调用 <code>gopark</code> 方法挂起当前 goroutine（会记录执行位置），状态为 waitReasonChanSend，阻塞等待 channel。</li>
+<li>调用 <code>KeepAlive</code> 方法保证待发送的数据值是活跃状态，也就是分配在堆上，避免被 GC 回收。</li>
+</ul>
+<p>配合图示如下：</p>
+<p><img src="https://image.eddycjy.com/eff4c079cfd73b75e5b5f26fbac7fe1b.jpg" alt="image" /></p>
+<p>在当前 goroutine 被挂起后，其将会在 channel 能够发送数据后被唤醒：</p>
+<pre><code>func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
+	...
+	// 从这里开始唤醒，并恢复阻塞的发送操作
+	if mysg != gp.waiting {
+		throw(&quot;G waiting list is corrupted&quot;)
+	}
+	gp.waiting = nil
+	gp.activeStackChans = false
+	if gp.param == nil {
+		if c.closed == 0 {
+			throw(&quot;chansend: spurious wakeup&quot;)
+		}
+		panic(plainError(&quot;send on closed channel&quot;))
+	}
+	gp.param = nil
+	if mysg.releasetime &gt; 0 {
+		blockevent(mysg.releasetime-t0, 2)
+	}
+	mysg.c = nil
+	releaseSudog(mysg)
+	return true
+}
+</code></pre><p>唤醒 goroutine（调度器在停止 g 时会记录运行线程和方法内执行的位置）并完成 channel 的阻塞数据发送动作后。进行基本的参数检查，确保是符合要求的（纵深防御），接着开始取消 mysg 上的 channel 绑定和 sudog 的释放。</p>
+<p>至此完成所有类别的 channel 数据发送管理。</p>
+<h3 id="接收数据">接收数据</h3>
+<p>channel 接受数据的演示代码：</p>
+<pre><code>msg := &lt;-ch
+
+msg, ok := &lt;-ch
+</code></pre><p>两种方法在编译器翻译后分别对应 <code>runtime.chanrecv1</code> 和 <code>runtime.chanrecv2</code> 两个入口方法，其再在内部再进一步调用 <code>runtime.chanrecv</code> 方法：</p>
+<p>需要注意，发送和接受 channel 是相对的，也就是其核心实现也是相对的。因此在理解时也可以结合来看。</p>
+<h4 id="前置处理-1">前置处理</h4>
+<pre><code>func chanrecv(c *hchan, ep unsafe.Pointer, block bool) (selected, received bool) {
+	if c == nil {
+		if !block {
+			return
+		}
+		gopark(nil, nil, waitReasonChanReceiveNilChan, traceEvGoStop, 2)
+		throw(&quot;unreachable&quot;)
+	}
+</code></pre><p>一开始时 <code>chanrecv</code> 方法会判断其是否为 nil channel。</p>
+<p>场景如下：</p>
+<ul>
+<li>若 channel 是 nil channel，且为阻塞接收则调用 <code>gopark</code> 方法挂起当前 goroutine。</li>
+<li>若 channel 是非阻塞模式，则直接返回。</li>
+</ul>
+<p>而接下来对于非阻塞模式的 channel 会进行快速失败检查，检测 channel 是否已经准备好接收。</p>
+<pre><code>	if !block &amp;&amp; empty(c) {
+		if atomic.Load(&amp;c.closed) == 0 {
+			return
+		}
+
+		if empty(c) {
+			if ep != nil {
+				typedmemclr(c.elemtype, ep)
+			}
+			return true, false
+		}
+	}
+	...
+}
+</code></pre><p>其分以下几种情况：</p>
+<ul>
+<li>无缓冲区：循环队列为 0 及等待队列 sendq 内没有 goroutine 正在等待。</li>
+<li>有缓冲区：缓冲区数组为空。</li>
+</ul>
+<p>随后会对 channel 的 closed 状态进行判断，因为 channel 是无法重复打开的，需要确定当前 channel 是否为未关闭状态。再确定接收失败，返回。</p>
+<p>但若是 channel 已经关闭且不存在缓存数据了，则会清理 <code>ep</code> 指针中的数据并返回。</p>
+<h4 id="直接接收">直接接收</h4>
+<p>当发现 channel 上有正在阻塞等待的发送方时，则直接进行接收：</p>
+<pre><code>func chanrecv(c *hchan, ep unsafe.Pointer, block bool) (selected, received bool) {
+
+	lock(&amp;c.lock)
+
+	if sg := c.sendq.dequeue(); sg != nil {
+		recv(c, sg, ep, func() { unlock(&amp;c.lock) }, 3)
+		return true, true
+	}
+	...
+}
+</code></pre><h4 id="缓冲接收">缓冲接收</h4>
+<p>当发现 channel 的缓冲区中有元素时：</p>
+<pre><code>func chanrecv(c *hchan, ep unsafe.Pointer, block bool) (selected, received bool) {
+
+	if c.qcount &gt; 0 {
+		qp := chanbuf(c, c.recvx)
+		if ep != nil {
+			typedmemmove(c.elemtype, ep, qp)
+		}
+		typedmemclr(c.elemtype, qp)
+		c.recvx++
+		if c.recvx == c.dataqsiz {
+			c.recvx = 0
+		}
+		c.qcount--
+		unlock(&amp;c.lock)
+		return true, true
+	}
+
+	if !block {
+		unlock(&amp;c.lock)
+		return false, false
+	}
+	...
+}
+</code></pre><p>将会调用 <code>chanbuf</code> 方法根据 <code>recvx</code> 的索引位置取出数据，找到要接收的元素进行处理。若所接收到的数据和所传入的变量均不为空，则会调用 <code>typedmemmove</code> 方法将缓冲区中的数据拷贝到所传入的变量中。</p>
+<p>最后数据拷贝完毕后，进行各索引项和队列总数的自增增减，并调用 <code>typedmemclr</code> 方法进行内存数据的清扫。</p>
+<h4 id="阻塞接收">阻塞接收</h4>
+<p>当发现 channel 上既没有待发送的 goroutine，缓冲区也没有数据时。将会进入到最后一个阶段阻塞接收：</p>
+<pre><code>func chanrecv(c *hchan, ep unsafe.Pointer, block bool) (selected, received bool) {
+
+	gp := getg()
+	mysg := acquireSudog()
+	mysg.releasetime = 0
+	if t0 != 0 {
+		mysg.releasetime = -1
+	}
+
+	mysg.elem = ep
+	mysg.waitlink = nil
+	gp.waiting = mysg
+	mysg.g = gp
+	mysg.isSelect = false
+	mysg.c = c
+	gp.param = nil
+	c.recvq.enqueue(mysg)
+
+	atomic.Store8(&amp;gp.parkingOnChan, 1)
+	gopark(chanparkcommit, unsafe.Pointer(&amp;c.lock), waitReasonChanReceive, traceEvGoBlockRecv, 2)
+	...
+}
+</code></pre><p>这一块接收逻辑与发送也基本类似，主体就是获取当前 goroutine，构建 sudog 结构保存当前待接收数据（发送方）的地址信息，并将 sudog 加入等待接收队列。最后调用 <code>gopark</code> 方法挂起当前 goroutine，等待唤醒。</p>
+<pre><code>func chanrecv(c *hchan, ep unsafe.Pointer, block bool) (selected, received bool) {
+
+	// 被唤醒后从此处开始
+	if mysg != gp.waiting {
+		throw(&quot;G waiting list is corrupted&quot;)
+	}
+	gp.waiting = nil
+	gp.activeStackChans = false
+	if mysg.releasetime &gt; 0 {
+		blockevent(mysg.releasetime-t0, 2)
+	}
+	closed := gp.param == nil
+	gp.param = nil
+	mysg.c = nil
+	releaseSudog(mysg)
+	return true, !closed
+}
+</code></pre><p>被唤醒后，将恢复现场，回到对应的执行点，完成最后的扫尾工作。</p>
+<h3 id="关闭-chan">关闭 chan</h3>
+<p>关闭 channel 主要是涉及到 <code>close</code> 关键字：</p>
+<pre><code>close(ch)
+</code></pre><p>其对应的编译器翻译方法为 <code>closechan</code> 方法：</p>
+<pre><code>func closechan(c *hchan)
+</code></pre><h4 id="前置处理-2">前置处理</h4>
+<pre><code>func closechan(c *hchan) {
+	if c == nil {
+		panic(plainError(&quot;close of nil channel&quot;))
+	}
+
+	lock(&amp;c.lock)
+	if c.closed != 0 {
+		unlock(&amp;c.lock)
+		panic(plainError(&quot;close of closed channel&quot;))
+	}
+
+	c.closed = 1
+	...
+}
+</code></pre><p>基本检查和关闭标志设置，保证 channel 不为 nil 和未关闭，保证边界。</p>
+<h4 id="释放接收方">释放接收方</h4>
+<p>在完成了异常边界判断和标志设置后，会将接受者的 sudog 等待队列（recvq）加入到待清除队列 glist 中：</p>
+<pre><code>func closechan(c *hchan) {
+
+	var glist gList
+	for {
+		sg := c.recvq.dequeue()
+		if sg == nil {
+			break
+		}
+		if sg.elem != nil {
+			typedmemclr(c.elemtype, sg.elem)
+			sg.elem = nil
+		}
+		if sg.releasetime != 0 {
+			sg.releasetime = cputicks()
+		}
+		gp := sg.g
+		gp.param = nil
+		if raceenabled {
+			raceacquireg(gp, c.raceaddr())
+		}
+		glist.push(gp)
+	}
+	...
+}
+</code></pre><p>所取出并加入的 goroutine 状态需要均为 <code>_Gwaiting</code>，以保证后续的新一轮调度。</p>
+<h4 id="释放发送方">释放发送方</h4>
+<p>同样，与释放接收方一样。会将发送方也加入到到待清除队列 glist 中：</p>
+<pre><code>func closechan(c *hchan) {
+
+	// release all writers (they will panic)
+	for {
+		sg := c.sendq.dequeue()
+		if sg == nil {
+			break
+		}
+		sg.elem = nil
+		if sg.releasetime != 0 {
+			sg.releasetime = cputicks()
+		}
+		gp := sg.g
+		gp.param = nil
+		if raceenabled {
+			raceacquireg(gp, c.raceaddr())
+		}
+		glist.push(gp)
+	}
+	unlock(&amp;c.lock)
+	...
+}
+</code></pre><h4 id="协程调度">协程调度</h4>
+<p>将所有 glist 中的 goroutine 状态从 <code>_Gwaiting</code> 设置为 <code>_Grunnable</code> 状态，等待调度器的调度：</p>
+<pre><code>func closechan(c *hchan) {
+
+	// Ready all Gs now that we've dropped the channel lock.
+	for !glist.empty() {
+		gp := glist.pop()
+		gp.schedlink = 0
+		goready(gp, 3)
+	}
+}
+</code></pre><p>后续所有的 goroutine 允许被重新调度后。若原本还在被动阻塞的发送方或接收方，将重获自由，后续该干嘛就去干嘛了，再跑回其所属的应用流程。</p>
+<h2 id="channel-sendrecv-分析">channel send/recv 分析</h2>
+<h3 id="send">send</h3>
+<p><code>send</code> 方法承担向 channel 发送具体数据的功能：</p>
+<pre><code>func send(c *hchan, sg *sudog, ep unsafe.Pointer, unlockf func(), skip int) {
+	if sg.elem != nil {
+		sendDirect(c.elemtype, sg, ep)
+		sg.elem = nil
+	}
+	gp := sg.g
+	unlockf()
+	gp.param = unsafe.Pointer(sg)
+	if sg.releasetime != 0 {
+		sg.releasetime = cputicks()
+	}
+	goready(gp, skip+1)
+}
+
+func sendDirect(t *_type, sg *sudog, src unsafe.Pointer) {
+	dst := sg.elem
+	typeBitsBulkBarrier(t, uintptr(dst), uintptr(src), t.size)
+	memmove(dst, src, t.size)
+}
+</code></pre><ul>
+<li>调用 <code>sendDirect</code> 方法将待发送的数据直接拷贝到待接收变量的内存地址（执行栈）。
+<ul>
+<li>例如：<code>msg := &lt;-ch</code> 语句，也就是将数据从 <code>ch</code> 直接拷贝到了 <code>msg</code> 的内存地址。</li>
+</ul>
+</li>
+<li>调用 <code>sg.g</code> 属性， 从 sudog 中获取等待接收数据的 goroutine，并传递后续唤醒所需的参数。</li>
+<li>调用 <code>goready</code> 方法唤醒需接收数据的 goroutine，期望从 <code>_Gwaiting</code> 状态调度为 <code>_Grunnable</code>。</li>
+</ul>
+<h3 id="recv">recv</h3>
+<p><code>recv</code> 方法承担在 channel 中接收具体数据的功能：</p>
+<pre><code>func recv(c *hchan, sg *sudog, ep unsafe.Pointer, unlockf func(), skip int) {
+	if c.dataqsiz == 0 {
+		if ep != nil {
+			recvDirect(c.elemtype, sg, ep)
+		}
+	} else {
+		qp := chanbuf(c, c.recvx)
+		if ep != nil {
+			typedmemmove(c.elemtype, ep, qp)
+		}
+		typedmemmove(c.elemtype, qp, sg.elem)
+		c.recvx++
+		if c.recvx == c.dataqsiz {
+			c.recvx = 0
+		}
+		c.sendx = c.recvx // c.sendx = (c.sendx+1) % c.dataqsiz
+	}
+	sg.elem = nil
+	gp := sg.g
+	unlockf()
+	gp.param = unsafe.Pointer(sg)
+	if sg.releasetime != 0 {
+		sg.releasetime = cputicks()
+	}
+	goready(gp, skip+1)
+}
+</code></pre><p>该方法在接受上分为两种情况，分别是直接接收和缓冲接收：</p>
+<ul>
+<li>直接接收（不存在缓冲区）：
+<ul>
+<li>调用 <code>recvDirect</code> 方法，其作用与 <code>sendDirect</code> 方法相对，会直接从发送方的 goroutine 调用栈中将数据拷贝过来到接收方的 goroutine。</li>
+</ul>
+</li>
+<li>缓冲接收（存在缓冲区）：
+<ul>
+<li>调用 <code>chanbuf</code> 方法，根据 <code>recvx</code> 索引的位置读取缓冲区元素，并将其拷贝到接收方的内存地址。</li>
+<li>拷贝完毕后，对 <code>sendx</code> 和 <code>recvx</code> 索引位置进行调整。</li>
+</ul>
+</li>
+</ul>
+<p>最后还是常规的 goroutine 调度动作，会调用 <code>goready</code> 方法来唤醒当前所处理的 sudog 的对应 goroutine。那么在下一轮调度时，既然已经接收了数据，自然发送方也就会被唤醒。</p>
+<h2 id="总结">总结</h2>
+<p>在本文中我们针对 Go 语言的 channel 进行了基本概念的分析和讲解，同时还针对 channel 的设计原理和四大操作（创建、发送、接收、关闭）进行了源码分析和图示分析。</p>
+<p>初步看过一遍后，再翻看。不难发现，Go 的 channel 设计并不复杂，记住他的数据结构就是带缓存的环形队列，再加上对称的 sendq、recvq 等双向链表的辅助属性，就能勾画出 channel 的基本逻辑流转模型。</p>
+<p>在具体的数据传输上，都是围绕着 “边界上下限处理，上互斥锁，阻塞/非阻塞，缓冲/非缓冲，缓存出队列，拷贝数据，解互斥锁，协程调度” 在不断地流转处理。在基本逻辑上也是相对重合的，因为发送和接收，创建和关闭总是相对的。</p>
+<p>如果更进一步深入探讨，还可以围绕着 CSP 模型、goroutine 调度等进一步的思考和理解。这一块会在后续的章节中再一步展开。</p>
+</article>
+ 
+      <div class="book-footer justify-between"></div>
+<p>本图书由<a href= "https://github.com/eddycjy"> 煎鱼 </a>©2020 版权所有，所有文章采用<a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh">知识署名-非商业性使用-禁止演绎 4.0 国际</a>进行许可。</p>
+
+      <footer class="book-footer">
+        
+  <div class="flex justify-between">
+
+
+
+
+
+</div>
+
+<script src="https://utteranc.es/client.js"
+    repo="eddycjy/go-advanced-book-comments"
+    issue-term="title"
+    theme="github-light"
+    crossorigin="anonymous"
+    async>
+</script>
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#什么是-channel">什么是 channel</a></li>
+    <li><a href="#channel-基本特性">channel 基本特性</a>
+      <ul>
+        <li><a href="#无缓冲-channel">无缓冲 channel</a></li>
+        <li><a href="#缓冲-channel">缓冲 channel</a></li>
+      </ul>
+    </li>
+    <li><a href="#channel-本质">channel 本质</a>
+      <ul>
+        <li><a href="#基本原理">基本原理</a></li>
+        <li><a href="#数据结构">数据结构</a></li>
+      </ul>
+    </li>
+    <li><a href="#channel-实现原理">channel 实现原理</a>
+      <ul>
+        <li><a href="#创建-chan">创建 chan</a></li>
+        <li><a href="#发送数据">发送数据</a></li>
+        <li><a href="#接收数据">接收数据</a></li>
+        <li><a href="#关闭-chan">关闭 chan</a></li>
+      </ul>
+    </li>
+    <li><a href="#channel-sendrecv-分析">channel send/recv 分析</a>
+      <ul>
+        <li><a href="#send">send</a></li>
+        <li><a href="#recv">recv</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
