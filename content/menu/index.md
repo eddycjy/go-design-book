@@ -13,7 +13,8 @@ headless: true
 - 第三章：设计思考
     - [3.1 类型后置]({{< relref "/posts/type-after.md" >}})
     - [3.2 循环引用]({{< relref "/posts/cyclic-import.md" >}})
-    - 3.3 泛型设计
-    - [3.4 错误处理]({{< relref "/posts/error-handler.md" >}})
+    - [3.3 泛型历史]({{< relref "/posts/generics-history.md" >}})
+    - [3.4 泛型设计]({{< relref "/posts/generics.md" >}})
+    - [3.5 错误处理]({{< relref "/posts/error-handler.md" >}})
 - 第四章：奇怪关联
     - 4.1 Go 和 Golang
