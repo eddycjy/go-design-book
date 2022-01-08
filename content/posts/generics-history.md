@@ -84,11 +84,15 @@ F(666, 233)
 
 - 性能好：静态类型。
 
-## 过去：为什么那么久都没有泛型
+核心思想的转变：**在没有泛型前，接口是方法集。在有泛型后，接口是类型集**。
+
+## 为什么那么久都没有泛型
 
 前几段在社区的微信群看到一位小伙伴吐槽 “Go 语言居然没有泛型？”，变相来看，可能其会认为 ”Go 都已经 11 岁了，2020 年了居然还没有泛型？”。
 
 这显然是不对的，因为泛型本质上并不是绝对的必需品，更不是 Go 语言的早期目标，因此在过往的发展阶段没有过多重视这一点，而是把精力放在了其他 feature 上。
+
+### 泛型的发展历程
 
 另外 Go 语言在以往其实进行过大量的泛型 proposal 试验，基本时间线（via @changkun）如下：
 
@@ -109,13 +113,44 @@ F(666, 233)
 
 虽然偶有中断，但仔细一看，2010 年就尝试过，现在 2020 年了，也是很励志了，显然官方也是在寻路和尝试的过程中，但一直没有找到相较好的方案，争端过多了。
 
-## 现在：Go 泛型
+直至 2021 年，正式确定了 Go 泛型的内容和方向，这将在下一节《泛型设计》具体展开介绍和说明。
+
+### 为什么纠结那么久
+
+Go 团队认为要将泛型的概念融入 Go，并与系统的其他部分很好地配合，必须解决一些深层次的技术问题，而在当时并没有解决这些问题的办法，所以拖了这么多年，一直在不断地尝试。
+
+关于这些问题，在几年前就在博客上写过一篇《[The Generic Dilemma](https://research.swtch.com/generic "The Generic Dilemma")》：
+
+![](https://image.eddycjy.com/8ce3c37629e8051e08e66a3143fce9c6.png)
+
+即使克服了那一页上的问题，也有其他问题，接下来你会遇到的问题是：”如何让程序员以一种有用的、易于解释的方式省略类型注释“。也就是如何更人性、更易于的表达泛型的类型参数。
+
+在写该文的现在（Go1.18），已经释出了泛型的正式提案和代码实现。引来了大量的同学吐槽，表示 “眼花缭乱、太过于丑陋、学习成本高” 等，Go 官方担心的果然成真了。
+
+### 与其他语言交流
+
+Go 团队和一些真正的 Java 泛型专家谈过，他们每个人都说了大致相同的话：要非常小心，它不像看起来那么容易，而且你会被你犯的所有错误困住。
+
+一个 Java 示范，可以浏览一下《[Java Generics FAQs - Frequently Asked Questions](http://www.angelikalanger.com/GenericsFAQ/JavaGenericsFAQ.html "Java Generics FAQs - Frequently Asked Questions")》的大部分内容：
+
+![](https://image.eddycjy.com/29573ea87fc02ecc0215f01b16993580.png)
+
+看看过了多久你会开始思考 "这真的是最好的方法吗？"。
+
+在泛型过程中会遇到许多问题，像是《[How do I decrypt Enum<E extends Enum<E>>](http://www.angelikalanger.com/GenericsFAQ/FAQSections/TypeParameters.html#FAQ106" "How do I decrypt Enum<E extends Enum<E>>")》：
+
+![](https://image.eddycjy.com/b3d6ea4704175a81e91762ec9953e163.png)
+
+为此，Go 团队在泛型的推动上非常谨慎。
+
+
+## Go 泛型尝鲜
 
 泛型尝鲜的方式有两种方式。线上 Ian Lance Taylor 提供了一个在线编译的 [go2go](https://go2goplay.golang.org/)：
 
 ![image](https://image.eddycjy.com/0609310f0a775b57fe017f56c1e50195.jpg)
 
-另外一种是线下，也就在本地安装 Go 的特定分支版本：
+另外一种是线下，也就在本地安装 Go 的特定分支版本（若是在 Go1.18 以后，直接使用 Go 最新版本就好了）：
 
 ```
 $ git clone https://github.com/golang/go
@@ -207,7 +242,7 @@ func F(T any)(v T)(r1, r2 T)
 
 ### 为什么不用书名号（«»）
 
-想的美，并不想使用非 ASCII，未来更没打算支持。
+想的美，Go 官方并不想使用非 ASCII，未来更没打算支持。
 
 ## 总结
 
