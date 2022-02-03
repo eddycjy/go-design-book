@@ -2,7 +2,9 @@
 headless: true
 ---
 - 第一章：设计之道
-    - 1.1 开发 Go 的原因
+    - [1.1 开发原因]({{< relref "/posts/started-go.md" >}})
+    - [1.2 少即是多]({{< relref "/posts/less-is-more.md" >}})
+    - [1.3 语言环境]({{< relref "/posts/go-env.md" >}})
 - 第二章：语言特性
     - [2.1 类和继承]({{< relref "/posts/objects.md" >}})
     - [2.2 可重入锁]({{< relref "/posts/repeat-mutex.md" >}})
