@@ -5,6 +5,8 @@ type: docs
 
 # nil 调用函数
 
+大家好，我是煎鱼。
+
 在我们 Go 的技术交流群里，有一个小伙伴提了一个程序方面的问题，还挺有意思的，分享给大家。
 
 ![](https://image.eddycjy.com/ce617bbfc9e30c4f2afe3943c3de4ef1.png)

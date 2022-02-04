@@ -5,7 +5,9 @@ type: docs
 
 # 语言环境
 
-最近春节假期，在家闭关多日。看到了在 2021 年 6 月 Go 语言之父 Rob Pike 在 UNSW Computing（悉尼新南威尔士大学计算机）组织的分享会议，介绍了他对现在 Go 编程语言和环境的一些看法。
+大家好，我是煎鱼。
+
+在 2021 年 6 月 Go 语言之父 Rob Pike 在 UNSW Computing（悉尼新南威尔士大学计算机）组织的分享会议，介绍了他对现在 Go 编程语言和环境的一些看法。
 
 今天煎鱼结合大佬的演讲《[The Go Programming Language and Environment](https://www.youtube.com/watch?v=YXV7sa4oM4I)》和一点个人理解给大家分享一波，包含 Go 发展、生态、看法等多方面知识。
 

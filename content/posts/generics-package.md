@@ -5,6 +5,8 @@ type: docs
 
 # 泛型配套
 
+大家好，我是煎鱼。
+
 ## maps
 
 Go 泛型的配套标准库 [golang.org/x/exp/maps](https://cs.opensource.google/go/x/exp/+/master:maps/maps.go;bpv=0) 包已经正式提交，放出来了，可以使用。
