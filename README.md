@@ -6,7 +6,7 @@
 
 如果有其他地方有引用，也希望能够保留原作者信息和地址。
 
-在线阅读：https://golang3.eddycjy.com， 可以点个 ⭐️ Star，督促我更新，感谢支持：）
+在线阅读：https://golang3.eddycjy.com ，可以点个 ⭐️ Star，督促我更新，感谢支持：）
 
 ## 学习和交流
 
