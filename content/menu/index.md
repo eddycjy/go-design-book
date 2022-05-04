@@ -19,7 +19,13 @@ headless: true
     - [3.4 泛型历史]({{< relref "/posts/generics-history.md" >}})
     - [3.5 泛型设计]({{< relref "/posts/generics.md" >}})
     - [3.6 泛型配套]({{< relref "/posts/generics-package.md" >}})
-- 第四章：语法糖
-    - [4.1 nil 调用函数]({{< relref "/posts/nil-func.md" >}})
-- 第五章：有趣事
-    - [5.1 Go 和 Golang]({{< relref "/posts/go-golang.md" >}})
+- 第四章：Go 提案
+    - [4.1 Context 取消 API]({{< relref "/posts/context-cancel.md" >}})
+    - [4.2 简单类型的指针初始化]({{< relref "/posts/basis-type-new.md" >}})
+    - [4.3 左侧函数]({{< relref "/posts/left-func.md" >}})
+    - [4.4 让 nil 等于 nil]({{< relref "/posts/nil-nil.md" >}})
+    - [4.5 错误处理套娃]({{< relref "/posts/errors-with.md" >}})
+- 第五章：语法糖
+    - [5.1 nil 调用函数]({{< relref "/posts/nil-func.md" >}})
+- 第六章：有趣事
+    - [6.1 Go 和 Golang]({{< relref "/posts/go-golang.md" >}})
